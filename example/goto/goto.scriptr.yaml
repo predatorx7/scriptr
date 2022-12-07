@@ -1,0 +1,67 @@
+scriptr: ^1.0.0
+
+name: Goto
+version: 0.1.0
+legalese:
+    copyright: Copyright (c) 2020, ${author.name}. All rights reserved.
+    license: BSD 3-Clause License
+author:
+    name: Mushaheed Syed
+    email: smushaheed@gmail.com
+
+exe: /usr/bin/bash
+
+commands:
+    get:
+        alias:
+            - g
+        info:
+            description: Gets a path address matching the key
+        "call(key: string):/usr/bin/dart": |
+            final path = exec('python findpath.py ${key}');
+            out('$key -> $path');
+    set:
+        alias:
+            - "save"
+            - "s"
+        info:
+            description: Saves a path with a key
+        "call(key: string, path: string?):/usr/bin/bash": |
+            final valuePath = path == null ? exec("pwd") : path;
+            out('Saving "$valuePath" with key "$key".. ');
+            exec("python savepath.py ${key} ${path}");
+    rename:
+        alias:
+            - re
+            - mv
+        info:
+            description: Renames a key
+        "call(previous_key_name: string, new_key_name: string)": |
+            if (previous_key_name == new_key_name) {
+                error('Error: Old & new key names must not be same.', -1);
+                return;
+            }
+            exec("python savepath.py ${previous_key_name} ${new_key_name}");
+    remove:
+        alias:
+            - "rm"
+        info:
+            description: Removes a record matching the key
+        flags:
+            all:
+                abbr: a
+                default: false
+                description: Remove all saved key-value records
+        exe: /usr/bin/java
+        "call(key: string)": |
+            exec("python remove_key.py ${key}");
+        "call(all: bool)": |
+            exec("python remove_all_key.py");
+    list:
+        alias:
+            - ls
+            - l
+        info:
+            description: List all saved records in a human readable format
+        "call()": |
+            exec("python list.py");

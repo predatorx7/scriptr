@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'app.dart';
+import 'app/default_app.dart';
 import 'logging.dart';
 
 class ApplicationData {
-  final List<String> applicationArguments;
+  final List<String> arguments;
   final IOSink output;
   final IOSink errorOutput;
 
   const ApplicationData(
-    this.applicationArguments,
+    this.arguments,
     this.output,
     this.errorOutput,
   );
@@ -36,10 +36,8 @@ Future<void> runApp(
 }) async {
   setupLogger(args);
 
-  final applicationArguments = args.length > 1 ? args.sublist(1) : <String>[];
-
   final appData = ApplicationData(
-    applicationArguments,
+    args,
     output ?? stdout,
     errorOutput ?? stderr,
   );

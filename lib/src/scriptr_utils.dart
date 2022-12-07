@@ -19,6 +19,8 @@ const defaultConfigFileNames = <String>[
   'scriptr.json',
 ];
 
+final logger = logging('scriptr_utils.dart');
+
 bool hasValidConfigFileExtension(String path) {
   final lowerCasedPath = path.toLowerCase();
   return supportedConfigExtensions.any((ext) {
@@ -81,7 +83,7 @@ Future<String> getScriptContentFromCurrentDirectory() async {
 }
 
 Future<String?> getScriptContentFromArgs(List<String> args) async {
-  final log = logging('getScriptContentFromArgs');
+  final log = logger('getScriptContentFromArgs');
   if (args.isEmpty) return null;
   final configFileName = args.first;
 
@@ -106,7 +108,7 @@ Future<String> getScriptContent([
 }
 
 Map<String, Object?> getScriptContentAsMap(String content) {
-  final log = logging('getScriptContentAsMap');
+  final log = logger('getScriptContentAsMap');
   final couldBeJson = content.trimLeft().startsWith('{');
   log.finest('Could this script content be json?: $couldBeJson');
 

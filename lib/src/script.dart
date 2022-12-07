@@ -3,28 +3,25 @@ import 'dart:io';
 
 import 'app.dart';
 import 'logging.dart';
-import 'scriptr_utils.dart';
 
-class ScriptData {
-  final Map<String, Object?> config;
+class ApplicationData {
   final List<String> applicationArguments;
   final IOSink output;
   final IOSink errorOutput;
 
-  const ScriptData(
-    this.config,
+  const ApplicationData(
     this.applicationArguments,
     this.output,
     this.errorOutput,
   );
 }
 
-typedef ScriptRunnerCreateCallback = ScriptRunner Function(ScriptData data);
+typedef ScriptRunnerAppCreateCallback = Scriptr Function(ApplicationData data);
 
-abstract class ScriptRunner {
-  final ScriptData data;
+abstract class Scriptr {
+  final ApplicationData data;
 
-  const ScriptRunner(
+  const Scriptr(
     this.data,
   );
 
@@ -33,19 +30,15 @@ abstract class ScriptRunner {
 
 Future<void> runApp(
   List<String> args, {
-  ScriptRunnerCreateCallback build = DefaultSciptrApp.new,
+  ScriptRunnerAppCreateCallback build = DefaultSciptrApp.new,
   IOSink? output,
   IOSink? errorOutput,
 }) async {
   setupLogger(args);
 
-  final scriptContent = await getScriptContent(args);
-  final config = getScriptContentAsMap(scriptContent);
-
   final applicationArguments = args.length > 1 ? args.sublist(1) : <String>[];
 
-  final appData = ScriptData(
-    config,
+  final appData = ApplicationData(
     applicationArguments,
     output ?? stdout,
     errorOutput ?? stderr,

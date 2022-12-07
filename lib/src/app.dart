@@ -2,13 +2,17 @@ import 'dart:convert';
 
 import 'app/app.dart';
 import 'script.dart';
+import 'scriptr_utils.dart';
 
-class DefaultSciptrApp extends ScriptRunner {
+class DefaultSciptrApp extends Scriptr {
   DefaultSciptrApp(super.data);
 
   @override
-  void run() {
-    final app = ScriptApp.fromJson(data.config);
+  void run() async {
+    final scriptContent = await getScriptContent(data.applicationArguments);
+    final config = getScriptContentAsMap(scriptContent);
+
+    final app = ScriptApp.fromJson(config);
 
     data.output.writeln(json.encode(app));
     data.output.writeln(data.applicationArguments);

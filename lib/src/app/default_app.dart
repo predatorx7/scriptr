@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:scriptr/src/scriptr_args.dart';
 
@@ -18,6 +19,7 @@ class DefaultSciptrApp extends Scriptr {
 
     final arguments = Argument.parseApplicationArguments(data.arguments);
 
+    print(json.encode(app));
     print(json.encode(arguments.toList()));
   }
 }

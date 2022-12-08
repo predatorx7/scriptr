@@ -7,12 +7,6 @@ import 'package:yaml/yaml.dart';
 
 import 'errors.dart';
 
-const supportedConfigExtensions = <String>[
-  'yaml',
-  'yml',
-  'json',
-];
-
 const defaultConfigFileNames = <String>[
   'scriptr.yaml',
   'scriptr.yml',
@@ -23,7 +17,7 @@ final logger = logging('scriptr_utils.dart');
 
 bool hasValidConfigFileExtension(String path) {
   final lowerCasedPath = path.toLowerCase();
-  return supportedConfigExtensions.any((ext) {
+  return defaultConfigFileNames.any((ext) {
     return lowerCasedPath.endsWith(ext);
   });
 }

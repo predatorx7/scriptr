@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:scriptr/src/scriptr_args.dart';
+
 import '../script.dart';
 import '../scriptr_utils.dart';
 import 'app.dart';
@@ -14,6 +16,8 @@ class DefaultSciptrApp extends Scriptr {
 
     final app = ScriptApp.fromJson(config);
 
-    data.output.writeln(json.encode(app));
+    final arguments = Argument.parseApplicationArguments(data.arguments);
+
+    print(json.encode(arguments.toList()));
   }
 }

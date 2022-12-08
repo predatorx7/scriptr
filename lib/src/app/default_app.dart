@@ -27,5 +27,7 @@ class DefaultSciptrApp extends Scriptr {
     for (final argument in arguments) {
       data.output.writeln(argument.toJson());
     }
+
+    data.output.write(ScriptAction().noCommandsMatchedMessage(app));
   }
 }

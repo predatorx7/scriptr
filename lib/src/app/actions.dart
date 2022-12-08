@@ -44,4 +44,18 @@ class ScriptAction {
 
     return buffer.toString();
   }
+
+  String noCommandsMatchedMessage(ScriptApp app) {
+    final buffer = StringBuffer();
+    final about = app.about;
+
+    final appExecutableName = about.name?.toLowerCase() ?? 'app';
+
+    buffer.writeln();
+    buffer.writeln(
+      '$appExecutableName: not a $appExecutableName command. See \'$appExecutableName help\'',
+    );
+
+    return buffer.toString();
+  }
 }

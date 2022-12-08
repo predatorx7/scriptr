@@ -41,6 +41,7 @@ AboutSection _$AboutSectionFromJson(Map<String, dynamic> json) => AboutSection(
       author: json['author'] == null
           ? null
           : AuthorSection.fromJson(json['author'] as Map<String, dynamic>),
+      description: json['description'] as String?,
     );
 
 Map<String, dynamic> _$AboutSectionToJson(AboutSection instance) =>
@@ -48,6 +49,7 @@ Map<String, dynamic> _$AboutSectionToJson(AboutSection instance) =>
       'scriptr': instance.scriptrVersion,
       'exe': instance.exe,
       'name': instance.name,
+      'description': instance.description,
       'version': instance.version,
       'legalese': instance.legalese,
       'author': instance.author,

@@ -2,6 +2,10 @@ scriptr: ^1.0.0
 
 name: Goto
 version: 0.1.0
+description: |
+    ${name} keeps a key-value record of paths you wish to save for quick access later.
+
+    Use "goto <key>" to redirect to <key>'s path.
 legalese:
     copyright: Copyright (c) 2020, ${author.name}. All rights reserved.
     license: BSD 3-Clause License

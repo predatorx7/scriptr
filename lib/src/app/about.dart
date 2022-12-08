@@ -46,6 +46,7 @@ class AboutSection {
     this.version,
     this.legalese,
     this.author,
+    this.description,
   });
 
   @JsonKey(name: 'scriptr')
@@ -56,6 +57,9 @@ class AboutSection {
 
   @JsonKey(name: 'name')
   final String? name;
+
+  @JsonKey(name: 'description')
+  final String? description;
 
   @JsonKey(name: 'version')
   final String? version;

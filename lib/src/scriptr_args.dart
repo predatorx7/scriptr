@@ -1,6 +1,8 @@
+import 'package:equatable/equatable.dart';
+
 import 'scriptr_utils.dart';
 
-abstract class Argument {
+abstract class Argument with EquatableMixin {
   const Argument();
 
   static Iterable<Argument> parseApplicationArguments(List<String> arguments) {
@@ -69,6 +71,12 @@ class PositionalArgument extends Argument {
   String toString() {
     return 'PositionalArgument(value: $value, subArgs: $subArgs)';
   }
+
+  @override
+  List<Object?> get props => [
+        value,
+        subArgs,
+      ];
 }
 
 abstract class Parameter extends Argument {
@@ -177,6 +185,13 @@ class AbbreviatedNamedParameter extends Parameter {
   String toString() {
     return 'AbbreviatedNamedParameter(name: $name, arguments: $arguments, options: $options)';
   }
+
+  @override
+  List<Object?> get props => [
+        name,
+        arguments,
+        options,
+      ];
 }
 
 class NamedParameter extends Parameter {
@@ -216,4 +231,11 @@ class NamedParameter extends Parameter {
   String toString() {
     return 'NamedParameter(name: $name, arguments: $arguments, options: $options)';
   }
+
+  @override
+  List<Object?> get props => [
+        name,
+        arguments,
+        options,
+      ];
 }

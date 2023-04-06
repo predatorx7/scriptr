@@ -3,7 +3,11 @@ import 'app.dart';
 import 'dart:math' as math;
 
 class ScriptAction {
-  String createGlobalHelpMessage(ScriptApp app) {
+  final ScriptApp app;
+
+  const ScriptAction(this.app);
+
+  String createGlobalHelpMessage() {
     final buffer = StringBuffer();
     final about = app.about;
     final aboutMap = about.toJson();
@@ -45,7 +49,7 @@ class ScriptAction {
     return buffer.toString();
   }
 
-  String noCommandsMatchedMessage(ScriptApp app) {
+  String noCommandsMatchedMessage() {
     final buffer = StringBuffer();
     final about = app.about;
 

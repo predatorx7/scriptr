@@ -1,11 +1,47 @@
 import 'package:equatable/equatable.dart';
 
+import 'scriptr_params.dart';
 import 'scriptr_utils.dart';
+
+typedef Arguments = Iterable<Argument>;
+
+extension ArgumentsExtension on Arguments {
+  bool containsNamedArgument(String name) {
+    for (final arg in this) {
+      if (arg is! NamedArgument || (arg.isNamed && !arg.isAbbreviatedNamed)) {
+        continue;
+      }
+      if (arg.name == name) return true;
+    }
+    return false;
+  }
+
+  bool containsNamedAbbreviatedArgument(String name) {
+    for (final arg in this) {
+      if (arg is! NamedArgument || arg.isAbbreviatedNamed) {
+        continue;
+      }
+      if (arg.name == name) return true;
+    }
+    return false;
+  }
+
+  bool containsNamedParameter(Parameter parameter) {
+    if (parameter is NamedParameter) {
+      final abbreviation = parameter.abbreviation;
+      if (abbreviation != null) {
+        return containsNamedAbbreviatedArgument(abbreviation);
+      }
+      return containsNamedAbbreviatedArgument(parameter.name);
+    }
+    return false;
+  }
+}
 
 abstract class Argument with EquatableMixin {
   const Argument();
 
-  static Iterable<Argument> parseApplicationArguments(List<String> arguments) {
+  static Arguments parseApplicationArguments(List<String> arguments) {
     final usedConfigFromArguments =
         arguments.isNotEmpty && hasValidConfigFileExtension(arguments.first);
     final applicationArguments =
@@ -14,7 +50,7 @@ abstract class Argument with EquatableMixin {
     return Argument.fromArguments(applicationArguments);
   }
 
-  static Iterable<Argument> fromArguments(List<String> arguments) sync* {
+  static Arguments fromArguments(List<String> arguments) sync* {
     for (int i = 0; i < arguments.length; i++) {
       final arg = arguments[i];
       final isParameter = arg.startsWith('-');
@@ -22,12 +58,12 @@ abstract class Argument with EquatableMixin {
       if (isParameter) {
         final isLongParameter = arg.startsWith('--');
         if (isLongParameter) {
-          yield NamedParameter.fromArguments(
+          yield NamedArgument.fromArguments(
             arg,
             subArgs,
           );
         } else {
-          final params = AbbreviatedNamedParameter.fromArguments(
+          final params = NamedAbbreviatedArgument.fromArguments(
             arg,
             subArgs,
           );
@@ -42,6 +78,27 @@ abstract class Argument with EquatableMixin {
   }
 
   Map<String, Object> toJson();
+
+  bool get isPosition;
+  bool get isNamed;
+  bool get isAbbreviatedNamed;
+
+  const factory Argument.positional(
+    String value,
+    Iterable<Argument> subArgs,
+  ) = PositionalArgument;
+
+  const factory Argument.parameterAbbreviatedNamed(
+    String name,
+    Iterable<PositionalArgument> arguments,
+    Iterable<NamedAbbreviatedArgument> options,
+  ) = NamedArgument.abbreviated;
+
+  const factory Argument.parameterNamed(
+    String name,
+    Iterable<PositionalArgument> arguments,
+    Iterable<NamedAbbreviatedArgument> options,
+  ) = NamedArgument;
 }
 
 class PositionalArgument extends Argument {
@@ -77,10 +134,76 @@ class PositionalArgument extends Argument {
         value,
         subArgs,
       ];
+
+  @override
+  bool get isPosition => true;
+
+  @override
+  bool get isNamed => false;
+
+  @override
+  bool get isAbbreviatedNamed => false;
 }
 
-abstract class Parameter extends Argument {
-  const Parameter();
+class NamedArgument extends Argument {
+  final String name;
+  final Iterable<PositionalArgument> arguments;
+  final Iterable<NamedAbbreviatedArgument> options;
+
+  const NamedArgument(
+    this.name,
+    this.arguments,
+    this.options,
+  );
+
+  factory NamedArgument.fromArguments(
+    String name,
+    List<String> arguments,
+  ) {
+    return NamedArgument(
+      NamedArgument.resolveName(name),
+      NamedArgument.resolvePositionalArguments(arguments),
+      NamedArgument.resolveParameterArguments(arguments),
+    );
+  }
+
+  const factory NamedArgument.abbreviated(
+    String name,
+    Iterable<PositionalArgument> arguments,
+    Iterable<NamedAbbreviatedArgument> options,
+  ) = NamedAbbreviatedArgument;
+
+  @override
+  Map<String, Object> toJson() {
+    return {
+      'NamedParameter': {
+        'name': name,
+        'arguments': arguments.map((e) => e.toJson()).toList(),
+        'options': options.map((e) => e.toJson()).toList(),
+      }
+    };
+  }
+
+  @override
+  String toString() {
+    return 'NamedParameter(name: $name, arguments: $arguments, options: $options)';
+  }
+
+  @override
+  List<Object?> get props => [
+        name,
+        arguments,
+        options,
+      ];
+
+  @override
+  bool get isPosition => false;
+
+  @override
+  bool get isNamed => true;
+
+  @override
+  bool get isAbbreviatedNamed => false;
 
   static String resolveName(String name) {
     if (!name.startsWith('--')) {
@@ -119,14 +242,14 @@ abstract class Parameter extends Argument {
     }
   }
 
-  static Iterable<AbbreviatedNamedParameter> resolveParameterArguments(
+  static Iterable<NamedAbbreviatedArgument> resolveParameterArguments(
     List<String> arguments,
   ) sync* {
     for (int i = 0; i < arguments.length; i++) {
       final arg = arguments[i];
       final isParameter = arg.startsWith('-');
       if (isParameter) {
-        final anps = AbbreviatedNamedParameter.fromArguments(
+        final anps = NamedAbbreviatedArgument.fromArguments(
           arg,
           arguments.sublist(i + 1),
         );
@@ -143,26 +266,22 @@ abstract class Parameter extends Argument {
   }
 }
 
-class AbbreviatedNamedParameter extends Parameter {
-  final String name;
-  final Iterable<PositionalArgument> arguments;
-  final Iterable<AbbreviatedNamedParameter> options;
-
-  const AbbreviatedNamedParameter(
-    this.name,
-    this.arguments,
-    this.options,
+class NamedAbbreviatedArgument extends NamedArgument {
+  const NamedAbbreviatedArgument(
+    super.name,
+    super.arguments,
+    super.options,
   );
 
-  static Iterable<AbbreviatedNamedParameter> fromArguments(
+  static Iterable<NamedAbbreviatedArgument> fromArguments(
     String name,
     List<String> arguments,
   ) {
     final n = name.substring(1);
-    final poargs = Parameter.resolvePositionalArguments(arguments);
-    final params = Parameter.resolveParameterArguments(arguments);
-    return n.split('').map<AbbreviatedNamedParameter>((e) {
-      return AbbreviatedNamedParameter(
+    final poargs = NamedArgument.resolvePositionalArguments(arguments);
+    final params = NamedArgument.resolveParameterArguments(arguments);
+    return n.split('').map<NamedAbbreviatedArgument>((e) {
+      return NamedAbbreviatedArgument(
         n,
         poargs,
         params,
@@ -192,50 +311,13 @@ class AbbreviatedNamedParameter extends Parameter {
         arguments,
         options,
       ];
-}
-
-class NamedParameter extends Parameter {
-  final String name;
-  final Iterable<PositionalArgument> arguments;
-  final Iterable<AbbreviatedNamedParameter> options;
-
-  const NamedParameter(
-    this.name,
-    this.arguments,
-    this.options,
-  );
-
-  factory NamedParameter.fromArguments(
-    String name,
-    List<String> arguments,
-  ) {
-    return NamedParameter(
-      Parameter.resolveName(name),
-      Parameter.resolvePositionalArguments(arguments),
-      Parameter.resolveParameterArguments(arguments),
-    );
-  }
 
   @override
-  Map<String, Object> toJson() {
-    return {
-      'NamedParameter': {
-        'name': name,
-        'arguments': arguments.map((e) => e.toJson()).toList(),
-        'options': options.map((e) => e.toJson()).toList(),
-      }
-    };
-  }
+  bool get isPosition => false;
 
   @override
-  String toString() {
-    return 'NamedParameter(name: $name, arguments: $arguments, options: $options)';
-  }
+  bool get isNamed => true;
 
   @override
-  List<Object?> get props => [
-        name,
-        arguments,
-        options,
-      ];
+  bool get isAbbreviatedNamed => true;
 }

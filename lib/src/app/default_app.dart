@@ -6,28 +6,28 @@ import 'actions.dart';
 import 'app.dart';
 
 class DefaultSciptrApp extends Scriptr {
-  DefaultSciptrApp(super.data);
+  DefaultSciptrApp(super.context);
 
   @override
   void run() async {
-    final scriptContent = await getScriptContent(data.arguments);
+    final scriptContent = await getScriptContent(context.arguments);
     final config = getScriptContentAsMap(scriptContent);
 
     final app = ScriptApp.fromJson(config);
 
-    final arguments = Argument.parseApplicationArguments(data.arguments);
+    final arguments = Argument.parseApplicationArguments(context.arguments);
 
     late final helpMessage = ScriptAction().createGlobalHelpMessage(app);
 
     if (arguments.isEmpty) {
-      data.output.write(helpMessage);
+      context.logger.info(helpMessage);
       return;
     }
 
     for (final argument in arguments) {
-      data.output.writeln(argument.toJson());
+      context.logger.fine(argument.toJson());
     }
 
-    data.output.write(ScriptAction().noCommandsMatchedMessage(app));
+    context.logger.info(ScriptAction().noCommandsMatchedMessage(app));
   }
 }

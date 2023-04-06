@@ -13,3 +13,7 @@ bool hasFlag(
   }
   return false;
 }
+
+bool isMaybeFlag(String argument) {
+  return argument.startsWith('-');
+}

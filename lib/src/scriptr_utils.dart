@@ -6,6 +6,7 @@ import 'package:scriptr/src/logging.dart';
 import 'package:yaml/yaml.dart';
 
 import 'errors.dart';
+import 'flags.dart';
 
 const defaultConfigFileNames = <String>[
   'scriptr.yaml',
@@ -72,32 +73,60 @@ Future<String> getScriptContentFromCurrentDirectory() async {
     }
   }
   throw ConfigNotFound(
-    'Could not find a default config file in the current directory. Default files can be named ${defaultConfigFileNames.join(", ")}.',
+    'Could not find a default config file in the current directory.',
   );
 }
 
-Future<String?> getScriptContentFromArgs(List<String> args) async {
+Future<String> getScriptContentFromArgs(List<String> args) async {
   final log = logger('getScriptContentFromArgs');
-  if (args.isEmpty) return null;
-  final configFileName = args.first;
-
-  log.finest('Testing `$configFileName` for config file');
-  if (!configFileName.startsWith('-')) {
-    if (hasValidConfigFileExtension(configFileName)) {
-      log.finer('`$configFileName` has a valid config extension');
-      return getScriptContentFromUri(configFileName);
-    }
+  for (final maybeConfigFileName in args) {
+    log.finest('Checking if `$maybeConfigFileName` is a config file');
+    // Flags are allowed at any position. If this is a flag, then we continue
+    // checking next arguments.
+    if (isMaybeFlag(maybeConfigFileName)) continue;
+    // If this isn't a flag, and doesn't have correct file extension then this
+    // could be arguments for script file in current directory. We break here because
+    // config file cannot be in the arguments after this.
+    if (!hasValidConfigFileExtension(maybeConfigFileName)) break;
+    final configFileName = maybeConfigFileName;
+    log.finer('`$configFileName` has a valid config extension');
+    return getScriptContentFromUri(configFileName);
   }
-
-  return null;
+  throw ConfigNotFound(
+    'Could not find a valid config file path in command line arguments.',
+  );
 }
 
+/// Finds the correct script file and returns this script file's contents
 Future<String> getScriptContent([
   List<String>? args,
 ]) async {
-  String? scriptContent =
-      args != null ? await getScriptContentFromArgs(args) : null;
-  scriptContent ??= await getScriptContentFromCurrentDirectory();
+  String? scriptContent;
+
+  final errors = <ScriptrError>[];
+
+  if (args != null && args.isNotEmpty) {
+    try {
+      scriptContent = await getScriptContentFromArgs(args);
+    } on ScriptrError catch (e) {
+      errors.add(e);
+    }
+  }
+  if (scriptContent == null) {
+    try {
+      scriptContent = await getScriptContentFromCurrentDirectory();
+    } on ScriptrError catch (e) {
+      errors.add(e);
+    }
+  }
+  if (scriptContent == null) {
+    throw ScriptrError.merge(
+      errors,
+      reason: 'No valid script found in arguments or current directory',
+      lastMessage:
+          '! Scriptr config file can be named ${defaultConfigFileNames.join(", ")}',
+    );
+  }
   return scriptContent;
 }
 

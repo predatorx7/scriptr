@@ -10,40 +10,54 @@ extension LoggerUtils on Logger {
   }
 }
 
-Level getLoggerLevelFromDebug(String debug) {
-  if (debug == '*') {
-    return Level.ALL;
-  } else if (int.tryParse(debug) != null) {
-    final value = int.parse(debug);
-    if (value >= 0 && value < Level.LEVELS.length) {
-      return Level.LEVELS[value];
-    } else {
-      return Level('CUSTOM', value);
-    }
-  } else {
-    return Level.INFO;
-  }
-}
-
-void setupLogger(List<String> arguments) {
-  hierarchicalLoggingEnabled = true;
-
+final bool isVerboseLoggingEnabled = () {
   final debug = Platform.environment['DEBUG'];
   final isVerbose = debug != null && debug.isNotEmpty;
+  return isVerbose;
+}();
 
-  if (isVerbose) {
-    logging.level = getLoggerLevelFromDebug(debug);
+const _defaultLoggerLevel = Level.WARNING;
+
+Level _getLoggerLevelFromDebug() {
+  final debug = Platform.environment['DEBUG'];
+  if (debug == '*') {
+    return Level.ALL;
+  } else if (debug == null || debug.isEmpty) {
+    return _defaultLoggerLevel;
   } else {
-    logging.level = Level.OFF;
+    final debugInt = int.tryParse(debug);
+    for (final level in Level.LEVELS) {
+      if (level.value == debugInt || level.name == debug) return level;
+    }
+    if (debugInt == null) return Level.INFO;
+    return Level('CUSTOM', debugInt);
   }
-
-  logging.onRecord.listen(onLogs);
 }
 
-void onLogs(LogRecord event) {
-  print(event.toString());
+final Level _loggerLevelFromDebug = () {
+  if (isVerboseLoggingEnabled) {
+    return _getLoggerLevelFromDebug();
+  } else {
+    return _defaultLoggerLevel;
+  }
+}();
+
+void _onLogs(LogRecord event) {
+  final message = event.object?.toString() ?? event.message;
+  final level = event.level;
+  final loggerName = event.loggerName;
+  final msg = message.isNotEmpty && message != 'null' ? message : '';
+  print("[${level.name}] $loggerName: $msg");
   if (event.error != null) {
     print(event.error);
     print(event.stackTrace);
   }
+}
+
+void setupLogger() {
+  hierarchicalLoggingEnabled = true;
+
+  logging.level = _loggerLevelFromDebug;
+
+  logging.onRecord.listen(_onLogs);
 }

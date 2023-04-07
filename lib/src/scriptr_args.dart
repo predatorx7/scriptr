@@ -8,7 +8,7 @@ typedef Arguments = Iterable<Argument>;
 extension ArgumentsExtension on Arguments {
   bool containsNamedArgument(String name) {
     for (final arg in this) {
-      if (arg is! NamedArgument || (arg.isNamed && !arg.isAbbreviatedNamed)) {
+      if (arg is! NamedArgument || (!arg.isNamed || arg.isAbbreviatedNamed)) {
         continue;
       }
       if (arg.name == name) return true;
@@ -18,7 +18,7 @@ extension ArgumentsExtension on Arguments {
 
   bool containsNamedAbbreviatedArgument(String name) {
     for (final arg in this) {
-      if (arg is! NamedArgument || arg.isAbbreviatedNamed) {
+      if (arg is! NamedArgument || !arg.isAbbreviatedNamed) {
         continue;
       }
       if (arg.name == name) return true;
@@ -30,9 +30,10 @@ extension ArgumentsExtension on Arguments {
     if (parameter is NamedParameter) {
       final abbreviation = parameter.abbreviation;
       if (abbreviation != null) {
-        return containsNamedAbbreviatedArgument(abbreviation);
+        final hasParameter = containsNamedAbbreviatedArgument(abbreviation);
+        if (hasParameter) return true;
       }
-      return containsNamedAbbreviatedArgument(parameter.name);
+      return containsNamedArgument(parameter.name);
     }
     return false;
   }
@@ -53,11 +54,11 @@ abstract class Argument with EquatableMixin {
   static Arguments fromArguments(List<String> arguments) sync* {
     for (int i = 0; i < arguments.length; i++) {
       final arg = arguments[i];
-      final isParameter = arg.startsWith('-');
+      final isNamedArgument = arg.startsWith('-');
       final subArgs = arguments.sublist(i + 1);
-      if (isParameter) {
-        final isLongParameter = arg.startsWith('--');
-        if (isLongParameter) {
+      if (isNamedArgument) {
+        final isLongNamedArgument = arg.startsWith('--');
+        if (isLongNamedArgument) {
           yield NamedArgument.fromArguments(
             arg,
             subArgs,
@@ -280,9 +281,10 @@ class NamedAbbreviatedArgument extends NamedArgument {
     final n = name.substring(1);
     final poargs = NamedArgument.resolvePositionalArguments(arguments);
     final params = NamedArgument.resolveParameterArguments(arguments);
-    return n.split('').map<NamedAbbreviatedArgument>((e) {
+    final flags = n.split('');
+    return flags.map<NamedAbbreviatedArgument>((flag) {
       return NamedAbbreviatedArgument(
-        n,
+        flag,
         poargs,
         params,
       );

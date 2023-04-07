@@ -62,14 +62,6 @@ class ApplicationContext {
     if (subscription == null) return Future.value(null);
     return subscription.cancel();
   }
-
-  void setVerboseMode(bool value) {
-    if (value) {
-      logger.level = Level.ALL;
-    } else {
-      logger.level = Level.INFO;
-    }
-  }
 }
 
 typedef ScriptRunnerAppCreateCallback = Scriptr Function(

@@ -1,3 +1,4 @@
+import 'package:logging/logging.dart';
 import 'package:scriptr/src/scriptr_args.dart';
 import 'package:scriptr/src/scriptr_params.dart';
 
@@ -9,20 +10,27 @@ import 'app.dart';
 class DefaultSciptrApp extends Scriptr {
   DefaultSciptrApp(super.context);
 
+  void setVerboseMode(bool isVerboseMode) {
+    if (isVerboseMode) {
+      context.logger.level = Level.ALL;
+    } else {
+      context.logger.level = Level.INFO;
+    }
+  }
+
   @override
   void run() async {
     final scriptContent = await getScriptContent(context.arguments);
     final config = getScriptContentAsMap(scriptContent);
-
-    final app = ScriptApp.fromJson(config);
 
     final arguments = Argument.parseApplicationArguments(context.arguments);
     final isVerbose = arguments.containsNamedParameter(
       Parameter.named('verbose', 'v'),
     );
 
-    context.setVerboseMode(isVerbose);
+    setVerboseMode(isVerbose);
 
+    final app = ScriptApp.fromJson(config);
     final scriptAction = ScriptAction(app);
 
     late final helpMessage = scriptAction.createGlobalHelpMessage();
@@ -32,9 +40,7 @@ class DefaultSciptrApp extends Scriptr {
       return;
     }
 
-    for (final argument in arguments) {
-      context.logger.fine(argument.toJson());
-    }
+    context.logger.fine(arguments);
 
     context.logger.info(scriptAction.noCommandsMatchedMessage());
   }

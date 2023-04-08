@@ -82,8 +82,10 @@ Future<void> runApp(
   runZonedGuarded(() async {
     final builtRunner = build(context);
     final app = await builtRunner.createApp(context.arguments);
-    final parsedArguments =
-        await builtRunner.parseArguments(app, context.arguments);
+    final parsedArguments = await builtRunner.parseArguments(
+      app,
+      context.arguments,
+    );
     await builtRunner.onCreate(app, parsedArguments, context.logger);
     await context.startLogging(builtRunner.onLogs);
     await builtRunner.run(app, parsedArguments, context.logger);

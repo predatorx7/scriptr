@@ -1,6 +1,7 @@
 import 'package:logging/logging.dart';
 import 'package:scriptr/src/scriptr_args.dart';
 import 'package:scriptr/src/scriptr_params.dart';
+import 'package:scriptr/src/utils/booleans.dart';
 
 import '../script.dart';
 import '../scriptr_utils.dart';
@@ -23,14 +24,14 @@ class DefaultSciptrApp extends Scriptr {
     final scriptContent = await getScriptContent(context.arguments);
     final config = getScriptContentAsMap(scriptContent);
 
+    final app = ScriptApp.fromJson(config);
+
     final arguments = Argument.parseApplicationArguments(context.arguments);
     final isVerbose = arguments.containsNamedParameter(
       Parameter.named('verbose', 'v'),
-    );
-
-    setVerboseMode(isVerbose);
-
-    final app = ScriptApp.fromJson(config);
+    );    
+    setVerboseMode(isVerbose && isTrueIfTrueOrNull(app.metadata.options?.isVerboseModeAvailable));
+    
     final scriptAction = ScriptAction(app);
 
     late final helpMessage = scriptAction.createGlobalHelpMessage();

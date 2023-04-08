@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 
+import 'app/app.dart';
 import 'app/default_app.dart';
 import 'logging.dart';
+import 'scriptr_args.dart';
 
 class ApplicationContext {
   ApplicationContext(
     this.arguments,
     this.output,
     this.errorOutput,
-  ) : logger = Logger('ApplicationContext') {
-    startLogging();
-  }
+  ) : logger = Logger('ApplicationContext');
 
   final List<String> arguments;
 
@@ -25,36 +25,9 @@ class ApplicationContext {
 
   StreamSubscription<LogRecord>? logRecordSubscription;
 
-  Future<void> startLogging() async {
+  Future<void> startLogging(void Function(LogRecord)? onLogs) async {
     await cancelLogging();
-    logger.level = Level.INFO;
     logRecordSubscription = logger.onRecord.listen(onLogs);
-  }
-
-  static final _log = logging('ApplicationContext.onLogs');
-
-  void onLogs(LogRecord event) {
-    final isError = event.level >= Level.SEVERE;
-    if (isVerboseLoggingEnabled && _log.isLoggable(event.level)) {
-      _log.log(
-        isError ? Level.SEVERE : Level.INFO,
-        event.message,
-        event.error,
-        event.stackTrace,
-        event.zone,
-      );
-    } else {
-      final message = event.message;
-
-      if (isError) {
-        errorOutput.writeln([
-          if (message.isNotEmpty && message != 'null') message,
-          event.error,
-        ].join('\n'));
-      } else {
-        output.writeln(message);
-      }
-    }
   }
 
   Future<void> cancelLogging() {
@@ -65,17 +38,31 @@ class ApplicationContext {
 }
 
 typedef ScriptRunnerAppCreateCallback = Scriptr Function(
-  ApplicationContext data,
+  ApplicationContext context,
 );
 
 abstract class Scriptr {
+  const Scriptr(this.context);
+
   final ApplicationContext context;
 
-  const Scriptr(
-    this.context,
+  FutureOr<ScriptApp> createApp(List<String> arguments);
+
+  FutureOr<Arguments> parseArguments(ScriptApp app, List<String> arguments);
+
+  FutureOr<void> onCreate(
+    ScriptApp app,
+    Arguments arguments,
+    Logger logger,
   );
 
-  void run();
+  void onLogs(LogRecord event);
+
+  FutureOr<void> run(
+    ScriptApp app,
+    Arguments arguments,
+    Logger logger,
+  );
 }
 
 Future<void> runApp(
@@ -92,9 +79,15 @@ Future<void> runApp(
     errorOutput ?? stderr,
   );
 
-  final builtRunner = build(context);
-
-  runZonedGuarded(builtRunner.run, (error, stack) {
+  runZonedGuarded(() async {
+    final builtRunner = build(context);
+    final app = await builtRunner.createApp(context.arguments);
+    final parsedArguments =
+        await builtRunner.parseArguments(app, context.arguments);
+    await builtRunner.onCreate(app, parsedArguments, context.logger);
+    await context.startLogging(builtRunner.onLogs);
+    await builtRunner.run(app, parsedArguments, context.logger);
+  }, (error, stack) {
     context.logger.severe(null, error, stack);
   });
 }

@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:logging/logging.dart';
+import 'package:scriptr/src/logging.dart';
 import 'package:scriptr/src/scriptr_args.dart';
 import 'package:scriptr/src/scriptr_params.dart';
 import 'package:scriptr/src/utils/booleans.dart';
@@ -11,38 +14,87 @@ import 'app.dart';
 class DefaultSciptrApp extends Scriptr {
   DefaultSciptrApp(super.context);
 
-  void setVerboseMode(bool isVerboseMode) {
-    if (isVerboseMode) {
-      context.logger.level = Level.ALL;
-    } else {
-      context.logger.level = Level.INFO;
-    }
+  @override
+  Future<ScriptApp> createApp(List<String> arguments) async {
+    final scriptContent = await getScriptContent(arguments);
+    final config = getScriptContentAsMap(scriptContent);
+
+    return ScriptApp.fromJson(config);
   }
 
   @override
-  void run() async {
-    final scriptContent = await getScriptContent(context.arguments);
-    final config = getScriptContentAsMap(scriptContent);
+  FutureOr<Arguments> parseArguments(ScriptApp app, List<String> arguments) {
+    return Argument.parseApplicationArguments(context.arguments);
+  }
 
-    final app = ScriptApp.fromJson(config);
-
-    final arguments = Argument.parseApplicationArguments(context.arguments);
+  @override
+  FutureOr<void> onCreate(
+    ScriptApp app,
+    Arguments arguments,
+    Logger logger,
+  ) {
     final isVerbose = arguments.containsNamedParameter(
       Parameter.named('verbose', 'v'),
-    );    
-    setVerboseMode(isVerbose && isTrueIfTrueOrNull(app.metadata.options?.isVerboseModeAvailable));
-    
+    );
+    final isVerboseModeAvailable = isTrueIfTrueOrNull(
+      app.metadata.options?.isVerboseModeAvailable,
+    );
+
+    void setVerboseMode(bool isVerboseMode) {
+      if (isVerboseMode) {
+        logger.level = Level.ALL;
+      } else {
+        logger.level = Level.INFO;
+      }
+    }
+
+    setVerboseMode(isVerbose && isVerboseModeAvailable);
+  }
+
+  @override
+  FutureOr<void> run(
+    ScriptApp app,
+    Arguments arguments,
+    Logger logger,
+  ) async {
     final scriptAction = ScriptAction(app);
 
     late final helpMessage = scriptAction.createGlobalHelpMessage();
 
     if (arguments.isEmpty) {
-      context.logger.info(helpMessage);
+      logger.info(helpMessage);
       return;
     }
 
-    context.logger.fine(arguments);
+    logger.finest(arguments);
 
-    context.logger.info(scriptAction.noCommandsMatchedMessage());
+    logger.info(scriptAction.noCommandsMatchedMessage());
+  }
+
+  static final _log = logging('DefaultSciptrApp.onLogs');
+
+  @override
+  void onLogs(LogRecord event) {
+    final isError = event.level >= Level.SEVERE;
+    if (isVerboseLoggingEnabled && _log.isLoggable(event.level)) {
+      _log.log(
+        isError ? Level.SEVERE : Level.INFO,
+        event.message,
+        event.error,
+        event.stackTrace,
+        event.zone,
+      );
+    } else {
+      final message = event.message;
+
+      if (isError) {
+        context.errorOutput.writeln([
+          if (message.isNotEmpty && message != 'null') message,
+          event.error,
+        ].join('\n'));
+      } else {
+        context.output.writeln(message);
+      }
+    }
   }
 }

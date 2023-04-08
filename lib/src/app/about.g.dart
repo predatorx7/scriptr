@@ -30,9 +30,23 @@ Map<String, dynamic> _$AuthorSectionToJson(AuthorSection instance) =>
       'email': instance.email,
     };
 
-AboutSection _$AboutSectionFromJson(Map<String, dynamic> json) => AboutSection(
-      scriptrVersion: json['scriptr'] as String?,
+OptionsSection _$OptionsSectionFromJson(Map<String, dynamic> json) =>
+    OptionsSection(
+      isVerboseModeAvailable: json['verbose_mode_available'] as bool?,
       exe: json['exe'] as String?,
+    );
+
+Map<String, dynamic> _$OptionsSectionToJson(OptionsSection instance) =>
+    <String, dynamic>{
+      'verbose_mode_available': instance.isVerboseModeAvailable,
+      'exe': instance.exe,
+    };
+
+AppMetadata _$AppMetadataFromJson(Map<String, dynamic> json) => AppMetadata(
+      scriptrVersion: json['scriptr'] as String?,
+      options: json['options'] == null
+          ? null
+          : OptionsSection.fromJson(json['options'] as Map<String, dynamic>),
       name: json['name'] as String?,
       version: json['version'] as String?,
       legalese: json['legalese'] == null
@@ -44,10 +58,10 @@ AboutSection _$AboutSectionFromJson(Map<String, dynamic> json) => AboutSection(
       description: json['description'] as String?,
     );
 
-Map<String, dynamic> _$AboutSectionToJson(AboutSection instance) =>
+Map<String, dynamic> _$AppMetadataToJson(AppMetadata instance) =>
     <String, dynamic>{
       'scriptr': instance.scriptrVersion,
-      'exe': instance.exe,
+      'options': instance.options,
       'name': instance.name,
       'description': instance.description,
       'version': instance.version,

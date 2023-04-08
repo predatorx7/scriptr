@@ -1,4 +1,4 @@
-const _reservedKeys = <String>['about', 'alias', 'info', 'flags'];
+const _reservedKeys = <String>['about', 'alias', 'info', 'flags', 'options'];
 
 Map<String, Object?> withoutReservedEntries(Map<String, Object?>? data) {
   return removeReservedEntries({

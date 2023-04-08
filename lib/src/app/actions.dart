@@ -9,16 +9,16 @@ class ScriptAction {
 
   String createGlobalHelpMessage() {
     final buffer = StringBuffer();
-    final about = app.about;
+    final about = app.metadata;
     final aboutMap = about.toJson();
-    final description = app.about.description;
+    final description = app.metadata.description;
 
     if (description != null && description.isNotEmpty) {
       buffer.writeln(interpolateValues(description.trim(), aboutMap));
       buffer.writeln();
     }
 
-    final appExecutableName = app.about.name?.toLowerCase() ?? 'app';
+    final appExecutableName = app.metadata.name?.toLowerCase() ?? 'app';
 
     buffer.writeln(
       'Usage: $appExecutableName <command> [options]',
@@ -51,7 +51,7 @@ class ScriptAction {
 
   String noCommandsMatchedMessage() {
     final buffer = StringBuffer();
-    final about = app.about;
+    final about = app.metadata;
 
     final appExecutableName = about.name?.toLowerCase() ?? 'app';
 

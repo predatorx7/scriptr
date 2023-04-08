@@ -38,10 +38,29 @@ class AuthorSection {
 }
 
 @JsonSerializable()
-class AboutSection {
-  const AboutSection({
-    this.scriptrVersion,
+class OptionsSection {
+  const OptionsSection({
+    this.isVerboseModeAvailable,
     this.exe,
+  });
+
+  @JsonKey(name: 'verbose_mode_available')
+  final bool? isVerboseModeAvailable;
+
+  @JsonKey(name: 'exe')
+  final String? exe;
+
+  factory OptionsSection.fromJson(Map<String, Object?> json) =>
+      _$OptionsSectionFromJson(json);
+
+  Map<String, Object?> toJson() => _$OptionsSectionToJson(this);
+}
+
+@JsonSerializable()
+class AppMetadata {
+  const AppMetadata({
+    this.scriptrVersion,
+    this.options,
     this.name,
     this.version,
     this.legalese,
@@ -52,8 +71,8 @@ class AboutSection {
   @JsonKey(name: 'scriptr')
   final String? scriptrVersion;
 
-  @JsonKey(name: 'exe')
-  final String? exe;
+  @JsonKey(name: 'options')
+  final OptionsSection? options;
 
   @JsonKey(name: 'name')
   final String? name;
@@ -70,8 +89,8 @@ class AboutSection {
   @JsonKey(name: 'author')
   final AuthorSection? author;
 
-  factory AboutSection.fromJson(Map<String, Object?> json) =>
-      _$AboutSectionFromJson(json);
+  factory AppMetadata.fromJson(Map<String, Object?> json) =>
+      _$AppMetadataFromJson(json);
 
-  Map<String, Object?> toJson() => _$AboutSectionToJson(this);
+  Map<String, Object?> toJson() => _$AppMetadataToJson(this);
 }

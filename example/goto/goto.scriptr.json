@@ -10,7 +10,10 @@
         "name": "Mushaheed Syed",
         "email": "smushaheed@gmail.com"
     },
-    "exe": "/usr/bin/bash",
+    "options": {
+        "verbose_mode_available": true,
+        "exe": "/usr/bin/bash"
+    },
     "commands": {
         "get": {
             "alias": [

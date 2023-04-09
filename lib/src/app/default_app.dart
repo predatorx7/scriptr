@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:colorize/colorize.dart';
 import 'package:logging/logging.dart';
 import 'package:scriptr/src/logging.dart';
 import 'package:scriptr/src/scriptr_args.dart';
@@ -67,8 +68,7 @@ class DefaultSciptrApp extends Scriptr {
     }
 
     logger.finest(arguments);
-
-    logger.info(scriptAction.noCommandsMatchedMessage());
+    logger.severe(scriptAction.noCommandsMatchedMessage());
   }
 
   static final _log = logging('DefaultSciptrApp.onLogs');
@@ -88,12 +88,25 @@ class DefaultSciptrApp extends Scriptr {
       final message = event.message;
 
       if (isError) {
-        context.errorOutput.writeln([
+        String errorMessage = [
           if (message.isNotEmpty && message != 'null') message,
-          event.error,
-        ].join('\n'));
+          if (event.error != null) event.error,
+        ].join('\n');
+        errorMessage = Colorize(errorMessage).red().toString();
+        context.errorOutput.writeln(errorMessage);
       } else {
-        context.output.writeln(message);
+        String output = message;
+        final level = event.level.value;
+        if (level >= 1000) {
+          output = Colorize(message).red().toString();
+        } else if (level >= 900) {
+          output = Colorize(message).yellow().toString();
+        } else if (level >= 800) {
+          output = Colorize(message).blue().toString();
+        } else if (level >= 700) {
+          output = Colorize(message).lightYellow().toString();
+        }
+        context.output.writeln(output);
       }
     }
   }

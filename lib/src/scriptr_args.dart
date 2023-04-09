@@ -16,14 +16,54 @@ extension ArgumentsExtension on Arguments {
     return false;
   }
 
+  NamedArgument? getFirstNamedArgument(String name) {
+    for (final arg in this) {
+      if (arg is! NamedArgument || (!arg.isNamed || arg.isAbbreviatedNamed)) {
+        continue;
+      }
+      if (arg.name == name) return arg;
+    }
+    return null;
+  }
+
+  Iterable<NamedArgument> getAllNamedArgument(String name) sync* {
+    for (final arg in this) {
+      if (arg is! NamedArgument || (!arg.isNamed || arg.isAbbreviatedNamed)) {
+        continue;
+      }
+      if (arg.name == name) yield arg;
+    }
+  }
+
   bool containsNamedAbbreviatedArgument(String name) {
     for (final arg in this) {
-      if (arg is! NamedArgument || !arg.isAbbreviatedNamed) {
+      if (arg is! NamedAbbreviatedArgument) {
         continue;
       }
       if (arg.name == name) return true;
     }
     return false;
+  }
+
+  NamedAbbreviatedArgument? getFirstNamedAbbreviatedArgument(String name) {
+    for (final arg in this) {
+      if (arg is! NamedAbbreviatedArgument) {
+        continue;
+      }
+      if (arg.name == name) return arg;
+    }
+    return null;
+  }
+
+  Iterable<NamedAbbreviatedArgument> getAllNamedAbbreviatedArgument(
+    String name,
+  ) sync* {
+    for (final arg in this) {
+      if (arg is! NamedAbbreviatedArgument) {
+        continue;
+      }
+      if (arg.name == name) yield arg;
+    }
   }
 
   bool containsNamedParameter(Parameter parameter) {
@@ -36,6 +76,29 @@ extension ArgumentsExtension on Arguments {
       return containsNamedArgument(parameter.name);
     }
     return false;
+  }
+
+  NamedArgument? getFirstNamedParameter(Parameter parameter) {
+    if (parameter is NamedParameter) {
+      final abbreviation = parameter.abbreviation;
+      if (abbreviation != null) {
+        final arg = getFirstNamedAbbreviatedArgument(abbreviation);
+        if (arg != null) return arg;
+      }
+      return getFirstNamedArgument(parameter.name);
+    }
+    return null;
+  }
+
+  Iterable<NamedArgument> getAllNamedParameter(Parameter parameter) sync* {
+    if (parameter is NamedParameter) {
+      final abbreviation = parameter.abbreviation;
+      if (abbreviation != null) {
+        final args = getAllNamedAbbreviatedArgument(abbreviation);
+        yield* args;
+      }
+      yield* getAllNamedArgument(parameter.name);
+    }
   }
 }
 

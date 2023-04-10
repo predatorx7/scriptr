@@ -74,7 +74,8 @@ class DefaultSciptrApp extends Scriptr {
       if (arg.isPosition) {
         final posArg = arg as PositionalArgument;
         ScriptCommand? command = app.commands[posArg.value];
-        if (command?.section?.info?.isPositionalEnabled != false) {
+        if (command != null &&
+            command.section?.info?.isPositionalEnabled != false) {
           targetCommand = command;
           break;
         }
@@ -108,7 +109,7 @@ class DefaultSciptrApp extends Scriptr {
       if (arg.isNamed) {
         final namedArg = arg as NamedArgument;
         ScriptCommand? command = app.commands[namedArg.name];
-        if (command?.section?.info?.isNamedEnabled != false) {
+        if (command != null && command.section?.info?.isNamedEnabled != false) {
           targetCommand = command;
           continue;
         }

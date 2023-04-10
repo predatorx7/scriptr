@@ -69,15 +69,26 @@ class DefaultSciptrApp extends Scriptr {
 
     logger.finest(arguments);
 
-    ScriptCommand? targetCommand;
+    final targetCommand = findScriptCommand(app, arguments);
+
+    if (targetCommand != null) {
+      logger.info(targetCommand.toJson());
+    } else {
+      logger.severe(scriptAction.noCommandsMatchedMessage());
+    }
+  }
+
+  ScriptCommand? findScriptCommand(
+    ScriptApp app,
+    Arguments arguments,
+  ) {
     for (final arg in arguments) {
       if (arg.isPosition) {
         final posArg = arg as PositionalArgument;
         ScriptCommand? command = app.commands[posArg.value];
         if (command != null &&
             command.section?.info?.isPositionalEnabled != false) {
-          targetCommand = command;
-          break;
+          return command;
         }
 
         final matchingCommands = app.commands.values.where(
@@ -86,8 +97,7 @@ class DefaultSciptrApp extends Scriptr {
         if (matchingCommands.isNotEmpty) {
           command = matchingCommands.first;
           if (command.section?.info?.isPositionalAbbreviationEnabled != false) {
-            targetCommand = command;
-            break;
+            return command;
           }
         }
       }
@@ -101,8 +111,7 @@ class DefaultSciptrApp extends Scriptr {
         if (matchingCommands.isNotEmpty) {
           command = matchingCommands.first;
           if (command.section?.info?.isNamedAbbreviationEnabled != false) {
-            targetCommand = command;
-            break;
+            return command;
           }
         }
       }
@@ -110,17 +119,11 @@ class DefaultSciptrApp extends Scriptr {
         final namedArg = arg as NamedArgument;
         ScriptCommand? command = app.commands[namedArg.name];
         if (command != null && command.section?.info?.isNamedEnabled != false) {
-          targetCommand = command;
-          continue;
+          return command;
         }
       }
     }
-
-    if (targetCommand != null) {
-      logger.info(targetCommand.toJson());
-    } else {
-      logger.severe(scriptAction.noCommandsMatchedMessage());
-    }
+    return null;
   }
 
   static final _log = logging('DefaultSciptrApp.onLogs');

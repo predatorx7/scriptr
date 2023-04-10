@@ -10,12 +10,21 @@ ScriptCommandInformationSection _$ScriptCommandInformationSectionFromJson(
         Map<String, dynamic> json) =>
     ScriptCommandInformationSection(
       json['description'] as String?,
+      json['is_named_enabled'] as bool?,
+      json['is_named_abbreviation_enabled'] as bool?,
+      json['is_positional_enabled'] as bool?,
+      json['is_positional_abbreviation_enabled'] as bool?,
     );
 
 Map<String, dynamic> _$ScriptCommandInformationSectionToJson(
         ScriptCommandInformationSection instance) =>
     <String, dynamic>{
       'description': instance.description,
+      'is_named_enabled': instance.isNamedEnabled,
+      'is_named_abbreviation_enabled': instance.isNamedAbbreviationEnabled,
+      'is_positional_enabled': instance.isPositionalEnabled,
+      'is_positional_abbreviation_enabled':
+          instance.isPositionalAbbreviationEnabled,
     };
 
 FlagDataSection _$FlagDataSectionFromJson(Map<String, dynamic> json) =>

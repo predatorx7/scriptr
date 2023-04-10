@@ -20,10 +20,26 @@ class ScriptFunctions {
 class ScriptCommandInformationSection {
   const ScriptCommandInformationSection(
     this.description,
+    this.isNamedEnabled,
+    this.isNamedAbbreviationEnabled,
+    this.isPositionalEnabled,
+    this.isPositionalAbbreviationEnabled,
   );
 
   @JsonKey(name: 'description')
   final String? description;
+
+  @JsonKey(name: 'is_named_enabled')
+  final bool? isNamedEnabled;
+
+  @JsonKey(name: 'is_named_abbreviation_enabled')
+  final bool? isNamedAbbreviationEnabled;
+
+  @JsonKey(name: 'is_positional_enabled')
+  final bool? isPositionalEnabled;
+
+  @JsonKey(name: 'is_positional_abbreviation_enabled')
+  final bool? isPositionalAbbreviationEnabled;
 
   factory ScriptCommandInformationSection.fromJson(Map<String, Object?> json) =>
       _$ScriptCommandInformationSectionFromJson(json);

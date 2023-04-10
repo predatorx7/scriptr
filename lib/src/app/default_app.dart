@@ -11,6 +11,7 @@ import '../script.dart';
 import '../scriptr_utils.dart';
 import 'actions.dart';
 import 'app.dart';
+import 'command.dart';
 
 class DefaultSciptrApp extends Scriptr {
   DefaultSciptrApp(super.context);
@@ -37,9 +38,8 @@ class DefaultSciptrApp extends Scriptr {
     final isVerbose = arguments.containsNamedParameter(
       Parameter.named('verbose', 'v'),
     );
-    final isVerboseModeAvailable = isTrueIfTrueOrNull(
-      app.metadata.options?.isVerboseModeAvailable,
-    );
+    final isVerboseModeAvailable =
+        app.metadata.options?.isVerboseModeAvailable != false;
 
     void setVerboseMode(bool isVerboseMode) {
       if (isVerboseMode) {
@@ -68,7 +68,58 @@ class DefaultSciptrApp extends Scriptr {
     }
 
     logger.finest(arguments);
-    logger.severe(scriptAction.noCommandsMatchedMessage());
+
+    ScriptCommand? targetCommand;
+    for (final arg in arguments) {
+      if (arg.isPosition) {
+        final posArg = arg as PositionalArgument;
+        ScriptCommand? command = app.commands[posArg.value];
+        if (command?.section?.info?.isPositionalEnabled != false) {
+          targetCommand = command;
+          break;
+        }
+
+        final matchingCommands = app.commands.values.where(
+          (it) => it.section?.alias?.contains(posArg.value) == true,
+        );
+        if (matchingCommands.isNotEmpty) {
+          command = matchingCommands.first;
+          if (command.section?.info?.isPositionalAbbreviationEnabled != false) {
+            targetCommand = command;
+            break;
+          }
+        }
+      }
+
+      if (arg.isAbbreviatedNamed) {
+        final abbrArg = arg as NamedAbbreviatedArgument;
+        final matchingCommands = app.commands.values.where(
+          (it) => it.section?.alias?.contains(abbrArg.name) == true,
+        );
+        ScriptCommand? command;
+        if (matchingCommands.isNotEmpty) {
+          command = matchingCommands.first;
+          if (command.section?.info?.isNamedAbbreviationEnabled != false) {
+            targetCommand = command;
+            break;
+          }
+        }
+      }
+      if (arg.isNamed) {
+        final namedArg = arg as NamedArgument;
+        ScriptCommand? command = app.commands[namedArg.name];
+        if (command?.section?.info?.isNamedEnabled != false) {
+          targetCommand = command;
+          continue;
+        }
+      }
+    }
+
+    if (targetCommand != null) {
+      logger.info(targetCommand.toJson());
+    } else {
+      logger.severe(scriptAction.noCommandsMatchedMessage());
+    }
   }
 
   static final _log = logging('DefaultSciptrApp.onLogs');

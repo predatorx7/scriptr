@@ -88,9 +88,12 @@ class DefaultSciptrApp extends Scriptr {
       final functions = targetCommand.functions;
       if (functions != null && functions.isNotEmpty) {
         for (final function in functions) {
-          if (function.canCall(targetCommand, arguments)) {
-            return function(scriptAction, targetCommand, arguments);
-          }
+          final didCall = await function.call(
+            scriptAction,
+            targetCommand,
+            arguments,
+          );
+          if (didCall) break;
         }
       }
       final subCommands = targetCommand.subCommands;

@@ -2,12 +2,23 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:json_annotation/json_annotation.dart';
+import 'package:scriptr/src/errors.dart';
 import 'package:scriptr/src/scriptr_args.dart';
 
 import 'actions.dart';
 import 'entries.dart';
 
 part 'command.g.dart';
+
+const _typeByNames = {
+  'string': String,
+  'datetime': DateTime,
+  'num': num,
+  'int': int,
+  'double': double,
+  'bool': bool,
+  '?': Null,
+};
 
 class ScriptFunctions {
   const ScriptFunctions(
@@ -18,15 +29,45 @@ class ScriptFunctions {
   final String signature;
   final List<String> instructions;
 
-  bool canCall(ScriptCommand targetCommand, Arguments arguments) {
-    return false;
+  Map<String, List<Type>> get parameters {
+    final parameterStart = signature.indexOf('(');
+    final parameterEnd = signature.indexOf(')');
+    final Map<String, List<Type>> parameters = {};
+    if (parameterStart != -1 && parameterEnd != -1) {
+      final parametersString = signature.substring(
+        parameterStart + 1,
+        parameterEnd,
+      );
+      final parametersList =
+          parametersString.replaceAll(RegExp(r'\s\b|\b\s'), '').split(',');
+      for (final parameter in parametersList) {
+        final parameterItems = parameter.split(':');
+        if (parameterItems.isEmpty) {
+          throw ScriptrError('Invalid parameter in signature: "$signature"');
+        }
+        final variableName = parameterItems.first;
+        final types = <Type>[];
+        parameters[variableName] = types;
+        final argument = parameterItems[1].toLowerCase();
+        for (final type in _typeByNames.entries) {
+          if (argument.contains(type.key)) {
+            types.add(type.value);
+          }
+        }
+      }
+    }
+    return parameters;
   }
 
-  FutureOr<void> call(
+  FutureOr<bool> call(
     ScriptAction scriptAction,
     ScriptCommand targetCommand,
     Arguments arguments,
-  ) {}
+  ) {
+    final parameters = this.parameters;
+    scriptAction.logger.finest(parameters);
+    return false;
+  }
 }
 
 @JsonSerializable()

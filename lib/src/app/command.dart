@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:json_annotation/json_annotation.dart';
+import 'package:scriptr/src/scriptr_args.dart';
 
+import 'actions.dart';
 import 'entries.dart';
 
 part 'command.g.dart';
@@ -14,6 +17,16 @@ class ScriptFunctions {
 
   final String signature;
   final List<String> instructions;
+
+  bool canCall(ScriptCommand targetCommand, Arguments arguments) {
+    return false;
+  }
+
+  FutureOr<void> call(
+    ScriptAction scriptAction,
+    ScriptCommand targetCommand,
+    Arguments arguments,
+  ) {}
 }
 
 @JsonSerializable()

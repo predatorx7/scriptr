@@ -58,7 +58,7 @@ class DefaultSciptrApp extends Scriptr {
     Arguments arguments,
     Logger logger,
   ) async {
-    final scriptAction = ScriptAction(app);
+    final scriptAction = ScriptAction(app, logger);
 
     late final helpMessage = scriptAction.createGlobalHelpMessage();
 
@@ -69,29 +69,66 @@ class DefaultSciptrApp extends Scriptr {
 
     logger.finest(arguments);
 
-    final targetCommand = findScriptCommand(app, arguments);
+    return evaluateCommandArguments(
+      scriptAction,
+      app.commands,
+      arguments,
+    );
+  }
+
+  Future<void> evaluateCommandArguments(
+    ScriptAction scriptAction,
+    Map<String, ScriptCommand> commandsMap,
+    Arguments arguments,
+  ) async {
+    final targetCommand = findScriptCommand(commandsMap, arguments);
 
     if (targetCommand != null) {
-      logger.info(targetCommand.toJson());
+      scriptAction.logger.info(targetCommand.toJson());
+      final functions = targetCommand.functions;
+      if (functions != null && functions.isNotEmpty) {
+        for (final function in functions) {
+          if (function.canCall(targetCommand, arguments)) {
+            return function(scriptAction, targetCommand, arguments);
+          }
+        }
+      }
+      final subCommands = targetCommand.subCommands;
+      if (subCommands != null) {
+        return evaluateCommandArguments(
+          scriptAction,
+          Map.fromEntries(
+            subCommands.map(
+              (e) => MapEntry(e.name, e),
+            ),
+          ),
+          arguments,
+        );
+      }
+      scriptAction.logger.severe(
+        scriptAction.notMatchedMessageIn(targetCommand),
+      );
     } else {
-      logger.severe(scriptAction.noCommandsMatchedMessage());
+      scriptAction.logger.severe(
+        scriptAction.noCommandsMatchedMessage(),
+      );
     }
   }
 
   ScriptCommand? findScriptCommand(
-    ScriptApp app,
+    Map<String, ScriptCommand> commandsMap,
     Arguments arguments,
   ) {
     for (final arg in arguments) {
       if (arg.isPosition) {
         final posArg = arg as PositionalArgument;
-        ScriptCommand? command = app.commands[posArg.value];
+        ScriptCommand? command = commandsMap[posArg.value];
         if (command != null &&
             command.section?.info?.isPositionalEnabled != false) {
           return command;
         }
 
-        final matchingCommands = app.commands.values.where(
+        final matchingCommands = commandsMap.values.where(
           (it) => it.section?.alias?.contains(posArg.value) == true,
         );
         if (matchingCommands.isNotEmpty) {
@@ -104,7 +141,7 @@ class DefaultSciptrApp extends Scriptr {
 
       if (arg.isAbbreviatedNamed) {
         final abbrArg = arg as NamedAbbreviatedArgument;
-        final matchingCommands = app.commands.values.where(
+        final matchingCommands = commandsMap.values.where(
           (it) => it.section?.alias?.contains(abbrArg.name) == true,
         );
         ScriptCommand? command;
@@ -117,7 +154,7 @@ class DefaultSciptrApp extends Scriptr {
       }
       if (arg.isNamed) {
         final namedArg = arg as NamedArgument;
-        ScriptCommand? command = app.commands[namedArg.name];
+        ScriptCommand? command = commandsMap[namedArg.name];
         if (command != null && command.section?.info?.isNamedEnabled != false) {
           return command;
         }

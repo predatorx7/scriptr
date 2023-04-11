@@ -1,11 +1,15 @@
+import 'package:logging/logging.dart';
+import 'package:scriptr/src/app/command.dart';
+
 import '../utils/interpolations.dart';
 import 'app.dart';
 import 'dart:math' as math;
 
 class ScriptAction {
   final ScriptApp app;
+  final Logger logger;
 
-  const ScriptAction(this.app);
+  const ScriptAction(this.app, this.logger);
 
   String createGlobalHelpMessage() {
     final buffer = StringBuffer();
@@ -60,6 +64,17 @@ class ScriptAction {
       '$appExecutableName: not a $appExecutableName command. See \'$appExecutableName help\'',
     );
 
+    return buffer.toString();
+  }
+
+  String notMatchedMessageIn(ScriptCommand targetCommand) {
+    final buffer = StringBuffer();
+    final executableName = targetCommand.name.toLowerCase();
+
+    buffer.writeln();
+    buffer.writeln(
+      '$executableName: not a $executableName command. See \'$executableName help\'',
+    );
     return buffer.toString();
   }
 }

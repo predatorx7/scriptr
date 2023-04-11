@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:json_annotation/json_annotation.dart';
+import 'package:scriptr/scriptr.dart';
 import 'package:scriptr/src/errors.dart';
 import 'package:scriptr/src/scriptr_args.dart';
+import 'package:scriptr/src/scriptr_utils.dart';
+import 'package:tuple/tuple.dart';
 
 import 'actions.dart';
 import 'entries.dart';
@@ -19,6 +22,30 @@ const _typeByNames = {
   'bool': bool,
   '?': Null,
 };
+
+Object resolveValueForTypes(String value, List<Type> types) {
+  for (final type in types) {
+    switch (type) {
+      case String:
+        return value;
+      case DateTime:
+        return DateTime.parse(value);
+      case num:
+        return num.parse(value);
+      case int:
+        return num.parse(value);
+      case double:
+        return num.parse(value);
+      case bool:
+        final v = value.toLowerCase().trim();
+        return v == 'true' || v != '0' || v == 'y';
+      default:
+    }
+  }
+  throw ScriptrError(
+    'Failed to parse value "$value" as a type from $types',
+  );
+}
 
 class ScriptFunctions {
   const ScriptFunctions(
@@ -61,11 +88,39 @@ class ScriptFunctions {
 
   FutureOr<bool> call(
     ScriptAction scriptAction,
-    ScriptCommand targetCommand,
+    Tuple2<ScriptCommand, Argument> targetCommandResult,
     Arguments arguments,
   ) {
     final parameters = this.parameters;
-    scriptAction.logger.finest(parameters);
+    final command = targetCommandResult.item1;
+    final commandArgument = targetCommandResult.item2;
+    logger.finest(parameters);
+    final parameterValues = <String, Object?>{};
+    for (final parameter in parameters.entries) {
+      bool didGetMatchedArgument = false;
+      for (final argument in arguments) {
+        didGetMatchedArgument =
+            didGetMatchedArgument || argument == commandArgument;
+        if ((didGetMatchedArgument) && argument.isPosition) {
+          final a = (argument as PositionalArgument);
+          // Its this command's name
+          if (a == commandArgument) continue;
+          final value = resolveValueForTypes(a.value, parameter.value);
+          parameterValues[parameter.key] = value;
+          continue;
+        }
+        if (argument is NamedArgument && argument.name == parameter.key) {
+          if (argument.arguments.isNotEmpty) {
+            parameterValues[parameter.key] = argument.arguments.first.value;
+          }
+          return false;
+        }
+      }
+      if (!parameter.value.contains(Null)) {
+        command.subCommands;
+        return false;
+      }
+    }
     return false;
   }
 }

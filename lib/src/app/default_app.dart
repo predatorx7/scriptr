@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:colorize/colorize.dart';
 import 'package:logging/logging.dart';
+import 'package:tuple/tuple.dart';
 import 'package:scriptr/src/logging.dart';
 import 'package:scriptr/src/scriptr_args.dart';
 import 'package:scriptr/src/scriptr_params.dart';
@@ -81,16 +82,17 @@ class DefaultSciptrApp extends Scriptr {
     Map<String, ScriptCommand> commandsMap,
     Arguments arguments,
   ) async {
-    final targetCommand = findScriptCommand(commandsMap, arguments);
+    final targetCommandResult = findScriptCommand(commandsMap, arguments);
+    final targetCommand = targetCommandResult?.item1;
 
-    if (targetCommand != null) {
-      scriptAction.logger.info(targetCommand.toJson());
-      final functions = targetCommand.functions;
+    if (targetCommandResult != null && targetCommand != null) {
+      logger.info(targetCommandResult.item1.toJson());
+      final functions = targetCommandResult.item1.functions;
       if (functions != null && functions.isNotEmpty) {
         for (final function in functions) {
           final didCall = await function.call(
             scriptAction,
-            targetCommand,
+            targetCommandResult,
             arguments,
           );
           if (didCall) break;
@@ -118,7 +120,7 @@ class DefaultSciptrApp extends Scriptr {
     }
   }
 
-  ScriptCommand? findScriptCommand(
+  Tuple2<ScriptCommand, Argument>? findScriptCommand(
     Map<String, ScriptCommand> commandsMap,
     Arguments arguments,
   ) {
@@ -128,7 +130,7 @@ class DefaultSciptrApp extends Scriptr {
         ScriptCommand? command = commandsMap[posArg.value];
         if (command != null &&
             command.section?.info?.isPositionalEnabled != false) {
-          return command;
+          return Tuple2(command, arg);
         }
 
         final matchingCommands = commandsMap.values.where(
@@ -137,7 +139,7 @@ class DefaultSciptrApp extends Scriptr {
         if (matchingCommands.isNotEmpty) {
           command = matchingCommands.first;
           if (command.section?.info?.isPositionalAbbreviationEnabled != false) {
-            return command;
+            return Tuple2(command, arg);
           }
         }
       }
@@ -151,7 +153,7 @@ class DefaultSciptrApp extends Scriptr {
         if (matchingCommands.isNotEmpty) {
           command = matchingCommands.first;
           if (command.section?.info?.isNamedAbbreviationEnabled != false) {
-            return command;
+            return Tuple2(command, arg);
           }
         }
       }
@@ -159,7 +161,7 @@ class DefaultSciptrApp extends Scriptr {
         final namedArg = arg as NamedArgument;
         ScriptCommand? command = commandsMap[namedArg.name];
         if (command != null && command.section?.info?.isNamedEnabled != false) {
-          return command;
+          return Tuple2(command, arg);
         }
       }
     }

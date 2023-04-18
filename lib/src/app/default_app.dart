@@ -60,10 +60,8 @@ class DefaultSciptrApp extends Scriptr {
   ) async {
     final scriptAction = ScriptAction(app, logger);
 
-    late final helpMessage = scriptAction.createGlobalHelpMessage();
-
     if (arguments.isEmpty) {
-      logger.info(helpMessage);
+      logger.info(scriptAction.createGlobalHelpMessage());
       return;
     }
 
@@ -82,7 +80,11 @@ class DefaultSciptrApp extends Scriptr {
     Arguments arguments, {
     List<ScriptCommand> parentCommands = const [],
   }) async {
-    final targetCommandResult = findScriptCommand(commandsMap, arguments);
+    final targetCommandResult = findScriptCommand(
+      parentCommands,
+      commandsMap,
+      arguments,
+    );
     logger.info({'targetCommandResult': targetCommandResult});
     late final currentCommands = [
       ...parentCommands,
@@ -91,6 +93,22 @@ class DefaultSciptrApp extends Scriptr {
       final targetCommand = targetCommandResult.item1;
       currentCommands.add(targetCommand);
       logger.info(targetCommand.toJson());
+
+      final subCommands = targetCommand.subCommands;
+
+      if (subCommands != null) {
+        return evaluateCommandArguments(
+          scriptAction,
+          Map.fromEntries(
+            subCommands.map(
+              (e) => MapEntry(e.name, e),
+            ),
+          ),
+          arguments,
+          parentCommands: currentCommands,
+        );
+      }
+
       final functions = targetCommand.functions;
       if (functions != null && functions.isNotEmpty) {
         for (final function in functions) {
@@ -106,20 +124,6 @@ class DefaultSciptrApp extends Scriptr {
           return;
         }
       }
-      final subCommands = targetCommand.subCommands;
-
-      if (subCommands != null) {
-        return evaluateCommandArguments(
-          scriptAction,
-          Map.fromEntries(
-            subCommands.map(
-              (e) => MapEntry(e.name, e),
-            ),
-          ),
-          arguments,
-          parentCommands: currentCommands,
-        );
-      }
     }
     if (currentCommands.isNotEmpty) {
       scriptAction.logger.info(
@@ -132,6 +136,7 @@ class DefaultSciptrApp extends Scriptr {
   }
 
   Tuple2<ScriptCommand, Argument>? findScriptCommand(
+    List<ScriptCommand> parentCommands,
     Map<String, ScriptCommand> commandsMap,
     Arguments arguments,
   ) {

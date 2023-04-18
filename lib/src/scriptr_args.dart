@@ -100,6 +100,16 @@ extension ArgumentsExtension on Arguments {
       yield* getAllNamedArgument(parameter.name);
     }
   }
+
+  String toSpaceSeparatedString() {
+    final preArg = where((e) => e is! NamedAbbreviatedArgument).map((e) {
+      return e.toRawString();
+    }).join(' ');
+    final namedArgs = whereType<NamedAbbreviatedArgument>();
+    if (namedArgs.isEmpty) return preArg;
+    final postArg = namedArgs.toRawString();
+    return '$preArg $postArg';
+  }
 }
 
 abstract class Argument with EquatableMixin {
@@ -146,6 +156,8 @@ abstract class Argument with EquatableMixin {
   bool get isPosition;
   bool get isNamed;
   bool get isAbbreviatedNamed;
+
+  String toRawString();
 
   const factory Argument.positional(
     String value,
@@ -207,6 +219,11 @@ class PositionalArgument extends Argument {
 
   @override
   bool get isAbbreviatedNamed => false;
+
+  @override
+  String toRawString() {
+    return value;
+  }
 }
 
 class NamedArgument extends Argument {
@@ -328,6 +345,20 @@ class NamedArgument extends Argument {
       }
     }
   }
+
+  @override
+  String toRawString() {
+    return '--$name';
+  }
+}
+
+extension NamedAbbreviatedArgumentExtension
+    on Iterable<NamedAbbreviatedArgument> {
+  String toRawString() {
+    if (isEmpty) return '';
+    final allFlagNames = map((e) => e.name).join();
+    return '-$allFlagNames';
+  }
 }
 
 class NamedAbbreviatedArgument extends NamedArgument {
@@ -385,4 +416,9 @@ class NamedAbbreviatedArgument extends NamedArgument {
 
   @override
   bool get isAbbreviatedNamed => true;
+
+  @override
+  String toRawString() {
+    return '-$name';
+  }
 }

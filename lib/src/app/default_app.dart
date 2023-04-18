@@ -6,7 +6,6 @@ import 'package:tuple/tuple.dart';
 import 'package:scriptr/src/logging.dart';
 import 'package:scriptr/src/scriptr_args.dart';
 import 'package:scriptr/src/scriptr_params.dart';
-import 'package:scriptr/src/utils/booleans.dart';
 
 import '../script.dart';
 import '../scriptr_utils.dart';
@@ -80,25 +79,35 @@ class DefaultSciptrApp extends Scriptr {
   Future<void> evaluateCommandArguments(
     ScriptAction scriptAction,
     Map<String, ScriptCommand> commandsMap,
-    Arguments arguments,
-  ) async {
+    Arguments arguments, {
+    List<ScriptCommand> parentCommands = const [],
+  }) async {
     final targetCommandResult = findScriptCommand(commandsMap, arguments);
-    final targetCommand = targetCommandResult?.item1;
-
-    if (targetCommandResult != null && targetCommand != null) {
-      logger.info(targetCommandResult.item1.toJson());
-      final functions = targetCommandResult.item1.functions;
+    logger.info({'targetCommandResult': targetCommandResult});
+    late final currentCommands = [
+      ...parentCommands,
+    ];
+    if (targetCommandResult != null) {
+      final targetCommand = targetCommandResult.item1;
+      currentCommands.add(targetCommand);
+      logger.info(targetCommand.toJson());
+      final functions = targetCommand.functions;
       if (functions != null && functions.isNotEmpty) {
         for (final function in functions) {
-          final didCall = await function.call(
-            scriptAction,
-            targetCommandResult,
+          final resolvedParameters = scriptAction.resolveParameters(
+            function.parameters,
             arguments,
+            targetCommandResult.item2,
           );
-          if (didCall) break;
+          if (resolvedParameters == null) continue;
+          await function.call(
+            resolvedParameters,
+          );
+          return;
         }
       }
       final subCommands = targetCommand.subCommands;
+
       if (subCommands != null) {
         return evaluateCommandArguments(
           scriptAction,
@@ -108,22 +117,28 @@ class DefaultSciptrApp extends Scriptr {
             ),
           ),
           arguments,
+          parentCommands: currentCommands,
         );
       }
-      scriptAction.logger.severe(
-        scriptAction.notMatchedMessageIn(targetCommand),
-      );
-    } else {
-      scriptAction.logger.severe(
-        scriptAction.noCommandsMatchedMessage(),
+    }
+    if (currentCommands.isNotEmpty) {
+      scriptAction.logger.info(
+        scriptAction.createScriptCommandHelpMessage(currentCommands),
       );
     }
+    scriptAction.logger.severe(
+      scriptAction.notMatchedMessageIn(currentCommands, arguments),
+    );
   }
 
   Tuple2<ScriptCommand, Argument>? findScriptCommand(
     Map<String, ScriptCommand> commandsMap,
     Arguments arguments,
   ) {
+    logger.info({
+      'argument.len': arguments.length,
+      'arguments': arguments,
+    });
     for (final arg in arguments) {
       if (arg.isPosition) {
         final posArg = arg as PositionalArgument;
@@ -193,14 +208,16 @@ class DefaultSciptrApp extends Scriptr {
         context.errorOutput.writeln(errorMessage);
       } else {
         String output = message;
-        final level = event.level.value;
-        if (level >= 1000) {
+        final level = event.level;
+        if (level >= Level.SEVERE) {
           output = Colorize(message).red().toString();
-        } else if (level >= 900) {
+        } else if (level >= Level.WARNING) {
           output = Colorize(message).yellow().toString();
-        } else if (level >= 800) {
+        } else if (level >= Level.INFO) {
+          output = message;
+        } else if (level >= Level.CONFIG) {
           output = Colorize(message).blue().toString();
-        } else if (level >= 700) {
+        } else if (level >= Level.FINE) {
           output = Colorize(message).lightYellow().toString();
         }
         context.output.writeln(output);

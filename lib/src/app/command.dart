@@ -2,13 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:scriptr/scriptr.dart';
 import 'package:scriptr/src/errors.dart';
-import 'package:scriptr/src/scriptr_args.dart';
-import 'package:scriptr/src/scriptr_utils.dart';
-import 'package:tuple/tuple.dart';
 
-import 'actions.dart';
 import 'entries.dart';
 
 part 'command.g.dart';
@@ -87,41 +82,9 @@ class ScriptFunctions {
   }
 
   FutureOr<bool> call(
-    ScriptAction scriptAction,
-    Tuple2<ScriptCommand, Argument> targetCommandResult,
-    Arguments arguments,
+    Map<String, Object?> resolvedParameters,
   ) {
-    final parameters = this.parameters;
-    final command = targetCommandResult.item1;
-    final commandArgument = targetCommandResult.item2;
-    logger.finest(parameters);
-    final parameterValues = <String, Object?>{};
-    for (final parameter in parameters.entries) {
-      bool didGetMatchedArgument = false;
-      for (final argument in arguments) {
-        didGetMatchedArgument =
-            didGetMatchedArgument || argument == commandArgument;
-        if ((didGetMatchedArgument) && argument.isPosition) {
-          final a = (argument as PositionalArgument);
-          // Its this command's name
-          if (a == commandArgument) continue;
-          final value = resolveValueForTypes(a.value, parameter.value);
-          parameterValues[parameter.key] = value;
-          continue;
-        }
-        if (argument is NamedArgument && argument.name == parameter.key) {
-          if (argument.arguments.isNotEmpty) {
-            parameterValues[parameter.key] = argument.arguments.first.value;
-          }
-          return false;
-        }
-      }
-      if (!parameter.value.contains(Null)) {
-        command.subCommands;
-        return false;
-      }
-    }
-    return false;
+    return true;
   }
 }
 

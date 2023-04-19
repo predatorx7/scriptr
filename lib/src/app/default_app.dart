@@ -96,7 +96,7 @@ class DefaultSciptrApp extends Scriptr {
 
       final subCommands = targetCommand.subCommands;
 
-      if (subCommands != null) {
+      if (subCommands != null && subCommands.isNotEmpty) {
         return evaluateCommandArguments(
           scriptAction,
           Map.fromEntries(
@@ -111,6 +111,8 @@ class DefaultSciptrApp extends Scriptr {
 
       final functions = targetCommand.functions;
       if (functions != null && functions.isNotEmpty) {
+        final exe = targetCommand.section?.exe;
+        if (exe != null) scriptAction.addExe(exe);
         for (final function in functions) {
           final resolvedParameters = scriptAction.resolveParameters(
             function.parameters,
@@ -119,10 +121,12 @@ class DefaultSciptrApp extends Scriptr {
           );
           if (resolvedParameters == null) continue;
           await function.call(
+            scriptAction,
             resolvedParameters,
           );
           return;
         }
+        if (exe != null) scriptAction.popExe();
       }
     }
     if (currentCommands.isNotEmpty) {

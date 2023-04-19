@@ -1,16 +1,25 @@
+import 'dart:io';
+
 import 'package:logging/logging.dart';
+import 'package:process_run/shell.dart';
 import 'package:scriptr/src/app/command.dart';
 
 import '../scriptr_args.dart';
 import '../utils/interpolations.dart';
 import 'app.dart';
 import 'dart:math' as math;
+import 'package:process_run/which.dart';
 
 class ScriptAction {
   final ScriptApp app;
   final Logger logger;
 
-  const ScriptAction(this.app, this.logger);
+  ScriptAction(this.app, this.logger) {
+    final exe = app.metadata.options?.exe;
+    if (exe != null) {
+      addExe(exe);
+    }
+  }
 
   String createGlobalHelpMessage() {
     final buffer = StringBuffer();
@@ -209,5 +218,36 @@ class ScriptAction {
     }
     logger.info('no matching arguments for the parameters');
     return null;
+  }
+
+  final _exes = <String>[];
+
+  void addExe(String exe) {
+    _exes.add(exe);
+  }
+
+  void popExe() {
+    _exes.removeLast();
+  }
+
+  String getResolvedExecutable() {
+    for (var i = _exes.length - 1; i >= 0; i--) {
+      final exe = _exes[i];
+      if (exe.isEmpty) continue;
+      final executable = whichSync(exe);
+      if (executable != null && executable.isNotEmpty) return executable;
+      final fileExecutable = File(exe);
+      if (fileExecutable.existsSync()) return fileExecutable.absolute.path;
+    }
+    return Platform.isWindows ? 'pwsh' : '/usr/bin/sh';
+  }
+
+  Future<void> run(List<String> instructions,  List<String> arguments) async {
+    final executable = getResolvedExecutable();
+    final shell = Shell();
+
+    await shell.runExecutableArguments(executable, arguments, onProcess: (process) {
+      process.stdin.writeAll(instructions, '\n');
+    });
   }
 }

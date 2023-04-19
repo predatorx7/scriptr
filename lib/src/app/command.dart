@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:json_annotation/json_annotation.dart';
+import 'package:scriptr/src/app/actions.dart';
 import 'package:scriptr/src/errors.dart';
 
 import 'entries.dart';
@@ -82,8 +83,10 @@ class ScriptFunctions {
   }
 
   FutureOr<bool> call(
+    ScriptAction scriptAction,
     Map<String, Object?> resolvedParameters,
-  ) {
+  ) async{
+    await scriptAction.run(instructions, resolvedParameters.values.map((value) => value.toString()).toList());
     return true;
   }
 }

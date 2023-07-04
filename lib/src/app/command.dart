@@ -85,8 +85,9 @@ class ScriptFunctions {
   FutureOr<bool> call(
     ScriptAction scriptAction,
     Map<String, Object?> resolvedParameters,
-  ) async{
-    await scriptAction.run(instructions, resolvedParameters.values.map((value) => value.toString()).toList());
+  ) async {
+    await scriptAction.run(instructions,
+        resolvedParameters.values.map((value) => value.toString()).toList());
     return true;
   }
 }

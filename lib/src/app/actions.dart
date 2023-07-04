@@ -1,20 +1,25 @@
 import 'dart:io';
 
 import 'package:logging/logging.dart';
-import 'package:process_run/shell.dart';
 import 'package:scriptr/src/app/command.dart';
+import 'package:scriptr/src/logger/cli.dart';
 
 import '../scriptr_args.dart';
+import '../utils/exe.dart';
 import '../utils/interpolations.dart';
 import 'app.dart';
 import 'dart:math' as math;
-import 'package:process_run/which.dart';
 
 class ScriptAction {
   final ScriptApp app;
   final Logger logger;
+  final CliIO io;
 
-  ScriptAction(this.app, this.logger) {
+  ScriptAction(
+    this.app,
+    this.logger,
+    this.io,
+  ) {
     final exe = app.metadata.options?.exe;
     if (exe != null) {
       addExe(exe);
@@ -213,10 +218,10 @@ class ScriptAction {
     }
     logger.finer(parameterValues);
     if (parameterValues.isNotEmpty || parameters.isEmpty) {
-      logger.info('will execute with matched arguments from parameters');
+      logger.fine('will execute with matched arguments from parameters');
       return parameterValues;
     }
-    logger.info('no matching arguments for the parameters');
+    logger.warning('no matching arguments for the parameters');
     return null;
   }
 
@@ -230,24 +235,38 @@ class ScriptAction {
     _exes.removeLast();
   }
 
-  String getResolvedExecutable() {
+  Future<String> getResolvedExecutable() async {
     for (var i = _exes.length - 1; i >= 0; i--) {
       final exe = _exes[i];
       if (exe.isEmpty) continue;
-      final executable = whichSync(exe);
-      if (executable != null && executable.isNotEmpty) return executable;
-      final fileExecutable = File(exe);
-      if (fileExecutable.existsSync()) return fileExecutable.absolute.path;
+      final executable = await findExecutable(exe);
+      if (executable != null) return executable;
     }
-    return Platform.isWindows ? 'pwsh' : '/usr/bin/sh';
+
+    if (Platform.isWindows) return 'powershell.exe';
+    return '/usr/bin/sh';
   }
 
-  Future<void> run(List<String> instructions,  List<String> arguments) async {
-    final executable = getResolvedExecutable();
-    final shell = Shell();
-
-    await shell.runExecutableArguments(executable, arguments, onProcess: (process) {
-      process.stdin.writeAll(instructions, '\n');
+  Future<void> run(
+    List<String> instructions,
+    List<String> arguments,
+  ) async {
+    final executable = await getResolvedExecutable();
+    logger.finest('found target executable: `$executable`');
+    if (!await hasExecutionPermission(executable)) {
+      logger.severe('Executable $executable does not have permission to run.');
+    }
+    logger.fine({
+      'executable': executable,
+      'arguments': arguments,
+      'instructions': instructions,
     });
+    await runProcess(
+      executable,
+      arguments,
+      logger,
+      instructions,
+      io,
+    );
   }
 }

@@ -1,5 +1,6 @@
-import 'package:scriptr/scriptr.dart' as scriptr;
+import 'package:scriptr/scriptr.dart';
+import 'package:scriptr/src/app/runner.dart';
 
 void main(List<String> args) async {
-  scriptr.runApp(args);
+  runApp(DefaultScriptAppRunner(args));
 }

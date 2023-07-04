@@ -1,95 +1,52 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:logging/logging.dart';
 
 import 'app/app.dart';
-import 'app/default_app.dart';
+import 'logger/cli.dart';
 import 'logging.dart';
 import 'scriptr_args.dart';
 
-class ApplicationContext {
-  ApplicationContext(
-    this.arguments,
-    this.output,
-    this.errorOutput,
-  ) : logger = Logger('ApplicationContext');
+abstract class ScriptAppRunner {
+  const ScriptAppRunner();
 
-  final List<String> arguments;
+  /// Creates a [ScriptApp] from a scriptr source file like json, yaml.
+  FutureOr<ScriptApp> createApp();
 
-  final IOSink output;
+  /// Parse launch arguments with [ScriptApp]
+  FutureOr<Arguments> parseArguments(ScriptApp app);
 
-  final IOSink errorOutput;
+  void onLogs(LogRecord event, CliIO io);
 
-  final Logger logger;
-
-  StreamSubscription<LogRecord>? logRecordSubscription;
-
-  Future<void> startLogging(void Function(LogRecord)? onLogs) async {
-    await cancelLogging();
-    logRecordSubscription = logger.onRecord.listen(onLogs);
-  }
-
-  Future<void> cancelLogging() {
-    final subscription = logRecordSubscription;
-    if (subscription == null) return Future.value(null);
-    return subscription.cancel();
-  }
-}
-
-typedef ScriptRunnerAppCreateCallback = Scriptr Function(
-  ApplicationContext context,
-);
-
-abstract class Scriptr {
-  const Scriptr(this.context);
-
-  final ApplicationContext context;
-
-  FutureOr<ScriptApp> createApp(List<String> arguments);
-
-  FutureOr<Arguments> parseArguments(ScriptApp app, List<String> arguments);
-
-  FutureOr<void> onCreate(
-    ScriptApp app,
-    Arguments arguments,
-    Logger logger,
-  );
-
-  void onLogs(LogRecord event);
-
+  /// Runs [app] with [arguments].
   FutureOr<void> run(
     ScriptApp app,
     Arguments arguments,
     Logger logger,
+    CliIO io,
   );
 }
 
 Future<void> runApp(
-  List<String> args, {
-  ScriptRunnerAppCreateCallback build = DefaultSciptrApp.new,
-  IOSink? output,
-  IOSink? errorOutput,
+  ScriptAppRunner runner, {
+  CliIO? io,
 }) async {
   setupLogger();
 
-  final context = ApplicationContext(
-    args,
-    output ?? stdout,
-    errorOutput ?? stderr,
-  );
+  final cliIO = io ?? CliIO();
 
-  runZonedGuarded(() async {
-    final builtRunner = build(context);
-    final app = await builtRunner.createApp(context.arguments);
-    final parsedArguments = await builtRunner.parseArguments(
-      app,
-      context.arguments,
-    );
-    await builtRunner.onCreate(app, parsedArguments, context.logger);
-    await context.startLogging(builtRunner.onLogs);
-    await builtRunner.run(app, parsedArguments, context.logger);
+  final logger = Logger('ScriptAppRunner');
+
+  final subscription = logger.onRecord.listen((event) {
+    runner.onLogs(event, cliIO);
+  });
+
+  return runZonedGuarded(() async {
+    final app = await runner.createApp();
+    final parsedArguments = await runner.parseArguments(app);
+    await runner.run(app, parsedArguments, logger, cliIO);
+    subscription.cancel();
   }, (error, stack) {
-    context.logger.severe(null, error, stack);
+    logger.severe(null, error, stack);
   });
 }

@@ -9,7 +9,7 @@ environment:
 dependencies:
   path: ^1.8.0
   meta: ^1.8.0
-  http: ^0.13.5
+  http: ^1.1.0
   logging: ^1.1.0
   yaml: ^3.1.1
   json_annotation: ^4.7.0

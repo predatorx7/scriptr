@@ -224,8 +224,8 @@ class Interpolation {
   Map _flattenAndResolve(Map obj, Set<String> matchSet,
       [Map? oldCache, bool keepAlive = false]) {
     var cache = oldCache ?? <String, String>{};
-    matchSet.forEach((match) {
-      if (cache.containsKey(match)) return;
+    for (var match in matchSet) {
+      if (cache.containsKey(match)) continue;
       // Step 1: Get current value
       var curVal = traverse(obj, match, keepAlive);
       // Step 2: If it contains other parameters
@@ -241,7 +241,7 @@ class Interpolation {
       }
       // Step 5: Finally
       cache[match] = curVal.replaceAll('"', '\\"');
-    });
+    }
     return cache;
   }
 

@@ -1,1 +1,1 @@
-bool isTrueIfTrueOrNull(bool? value) => value == null || value;
+bool isNotFalse(bool? value) => value == null || value;

@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
-import 'package:scriptr/src/logger/cli.dart';
+import 'package:scriptr/src/io/cli.dart';
 
 List<String> getWindowsPathExtensions() {
   const windowsDefaultPathExt = <String>['.exe', '.bat', '.cmd', '.com'];

@@ -2,17 +2,20 @@ import 'dart:async';
 
 import 'package:colorize/colorize.dart';
 import 'package:logging/logging.dart';
-import 'package:tuple/tuple.dart';
-import 'package:scriptr/src/logging.dart';
-import 'package:scriptr/src/scriptr_args.dart';
-import 'package:scriptr/src/scriptr_params.dart';
 
-import '../logger/cli.dart';
-import '../script.dart';
-import '../scriptr_utils.dart';
+import 'package:scriptr/src/logging.dart';
+import 'package:scriptr/src/io/cli.dart';
+import 'package:scriptr/src/runner.dart';
+import 'package:scriptr/src/utils/config_file.dart';
+
+import '../arguments/arguments.dart';
+import '../data/data.dart';
 import 'actions.dart';
-import 'app.dart';
-import 'command.dart';
+
+typedef CommandSearchResult = ({
+  ScriptCommand command,
+  Argument argument,
+});
 
 class DefaultScriptAppRunner extends ScriptAppRunner {
   const DefaultScriptAppRunner(this.args);
@@ -21,8 +24,8 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
 
   @override
   Future<ScriptApp> createApp() async {
-    final scriptContent = await getScriptContent(args);
-    final config = getScriptContentAsMap(scriptContent);
+    final scriptContent = await getConfigContent(args);
+    final config = getConfigContentAsMap(scriptContent);
 
     return ScriptApp.fromJson(config);
   }
@@ -41,7 +44,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
   ) async {
     setLoggerLevel(app, arguments, logger);
 
-    final scriptAction = ScriptAction(app, logger, io);
+    final scriptAction = AppActions(app, logger, io);
 
     if (arguments.isEmpty) {
       logger.info(scriptAction.createGlobalHelpMessage());
@@ -79,12 +82,12 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
   }
 
   Future<void> evaluateCommandArguments(
-    ScriptAction scriptAction,
+    AppActions scriptAction,
     Map<String, ScriptCommand> commandsMap,
     Arguments arguments, {
     List<ScriptCommand> parentCommands = const [],
   }) async {
-    final targetCommandResult = findScriptCommand(
+    final CommandSearchResult? targetCommandResult = findScriptCommand(
       parentCommands,
       commandsMap,
       arguments,
@@ -94,7 +97,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
       ...parentCommands,
     ];
     if (targetCommandResult != null) {
-      final targetCommand = targetCommandResult.item1;
+      final targetCommand = targetCommandResult.command;
       currentCommands.add(targetCommand);
       logger.info(targetCommand.toJson());
 
@@ -121,11 +124,11 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
           final resolvedParameters = scriptAction.resolveParameters(
             function.parameters,
             arguments,
-            targetCommandResult.item2,
+            targetCommandResult.argument,
           );
           if (resolvedParameters == null) continue;
-          await function.call(
-            scriptAction,
+          await scriptAction.invokeFunction(
+            function,
             resolvedParameters,
           );
           return;
@@ -143,7 +146,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     );
   }
 
-  Tuple2<ScriptCommand, Argument>? findScriptCommand(
+  CommandSearchResult? findScriptCommand(
     List<ScriptCommand> parentCommands,
     Map<String, ScriptCommand> commandsMap,
     Arguments arguments,
@@ -158,7 +161,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
         ScriptCommand? command = commandsMap[posArg.value];
         if (command != null &&
             command.section?.info?.isPositionalEnabled != false) {
-          return Tuple2(command, arg);
+          return (command: command, argument: arg);
         }
 
         final matchingCommands = commandsMap.values.where(
@@ -167,7 +170,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
         if (matchingCommands.isNotEmpty) {
           command = matchingCommands.first;
           if (command.section?.info?.isPositionalAbbreviationEnabled != false) {
-            return Tuple2(command, arg);
+            return (command: command, argument: arg);
           }
         }
       }
@@ -181,7 +184,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
         if (matchingCommands.isNotEmpty) {
           command = matchingCommands.first;
           if (command.section?.info?.isNamedAbbreviationEnabled != false) {
-            return Tuple2(command, arg);
+            return (command: command, argument: arg);
           }
         }
       }
@@ -189,7 +192,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
         final namedArg = arg as NamedArgument;
         ScriptCommand? command = commandsMap[namedArg.name];
         if (command != null && command.section?.info?.isNamedEnabled != false) {
-          return Tuple2(command, arg);
+          return (command: command, argument: arg);
         }
       }
     }

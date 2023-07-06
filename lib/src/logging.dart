@@ -12,7 +12,7 @@ extension LoggerUtils on Logger {
 
 final bool isVerboseLoggingEnabled = () {
   final debug = Platform.environment['DEBUG'];
-  final isVerbose = debug != null && debug.isNotEmpty;
+  final isVerbose = debug != null && debug.isNotEmpty && debug == '*';
   return isVerbose;
 }();
 

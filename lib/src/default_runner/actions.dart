@@ -243,13 +243,17 @@ class AppActions {
       if (executable != null) return executable;
     }
 
-    if (Platform.isWindows) return 'powershell.exe';
-    return '/usr/bin/sh';
+    final fallbackShell = Platform.isWindows ? 'powershell.exe' : '/usr/bin/sh';
+
+    logger.warning(
+      'Failed to find ${_exes.join(", ")} in PATH. Using $fallbackShell.',
+    );
+
+    return fallbackShell;
   }
 
   Future<void> run(
     List<String> instructions,
-    List<String> arguments,
   ) async {
     final executable = await getResolvedExecutable();
     logger.finest('found target executable: `$executable`');
@@ -258,12 +262,10 @@ class AppActions {
     }
     logger.fine({
       'executable': executable,
-      'arguments': arguments,
       'instructions': instructions,
     });
     await runProcess(
       executable,
-      arguments,
       logger,
       instructions,
       io,
@@ -275,8 +277,14 @@ class AppActions {
     Map<String, Object?> resolvedParameters,
   ) async {
     await run(
-      function.instructions,
-      resolvedParameters.values.map((value) => value.toString()).toList(),
+      function.instructions.map((e) {
+        return interpolateValues(e, resolvedParameters.map((key, value) {
+          return MapEntry(
+            key,
+            value?.toString() ?? '',
+          );
+        }));
+      }).toList(),
     );
     return true;
   }

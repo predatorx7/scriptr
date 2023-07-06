@@ -65,20 +65,23 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     Arguments arguments,
     Logger logger,
   ) {
-    final isVerbose = arguments.containsNamedParameter(
-      Parameter.named('verbose', 'v'),
-    );
     final isVerboseModeAvailable =
         app.metadata.options?.isVerboseModeAvailable != false;
 
-    final isVerboseEnabled = isVerbose && isVerboseModeAvailable;
-    if (isVerboseEnabled) {
+    if (isVerboseModeAvailable) {
       logger.level = Level.ALL;
     } else {
-      logger.level = Level.INFO;
+      final isVerbose = arguments.containsNamedParameter(
+        Parameter.named('verbose', 'v'),
+      );
+      if (isVerbose) {
+        logger.level = Level.INFO;
+      } else {
+        logger.level = Level.WARNING;
+      }
     }
 
-    logger.fine('isVerboseEnabled: $isVerboseEnabled');
+    logger.fine('logger.level: ${logger.level}');
   }
 
   Future<void> evaluateCommandArguments(

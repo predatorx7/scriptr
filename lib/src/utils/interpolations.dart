@@ -1,7 +1,11 @@
 import 'dart:convert';
 
-String interpolateValues(String template, Map<String, Object?> data) {
-  return Interpolation.instance.eval(template, data);
+String interpolateValues(
+  String template,
+  Map<String, Object?> data, [
+  bool keepAlive = true,
+]) {
+  return Interpolation.instance.eval(template, data, keepAlive);
 }
 
 const String _spaces = r'[\s]*';
@@ -197,7 +201,7 @@ class Interpolation {
   /// // output: {c.g}
   /// ```
   String traverse(Map? obj, String key, [bool keepAlive = false]) {
-    var result = key.split(_option._subKeyPointer).fold(
+    var result = key.split(_option._subKeyPointer).fold<dynamic>(
         obj,
         (parent, k) => null == parent
             ? null

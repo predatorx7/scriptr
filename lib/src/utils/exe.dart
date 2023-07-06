@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
 import 'package:scriptr/src/io/cli.dart';
+import 'package:scriptr/src/logging.dart';
 
 List<String> getWindowsPathExtensions() {
   const windowsDefaultPathExt = <String>['.exe', '.bat', '.cmd', '.com'];
@@ -129,18 +130,28 @@ FutureOr<File?> findExecutableFromPath(String command) async {
 
 Future<void> runProcess(
   String executable,
-  List<String> arguments,
   Logger logger,
   List<String> instructions,
   CliIO io,
 ) async {
   final subscriptions = <StreamSubscription>[];
-  final debugInstruction = '$executable ${arguments.join(" ")}';
-  logger.fine('[runProcess] $debugInstruction');
+  void cancelSubscriptions() {
+    for (final subs in subscriptions) {
+      subs.cancel();
+    }
+  }
+
+  final debugInstruction = '$executable ${instructions.join("; $executable ")}';
+  logger('runProcess').fine(debugInstruction);
   try {
+    final buffer = StringBuffer();
+    for (final instruction in instructions) {
+      final cmd = '$executable $instruction\n';
+      buffer.write(cmd);
+    }
     final process = await Process.start(
       executable,
-      arguments,
+      [],
       runInShell: true,
     );
     subscriptions.add(process.stdout.listen(io.stdout.add));
@@ -151,7 +162,5 @@ Future<void> runProcess(
   } catch (e, s) {
     logger.severe('Failed to run process `$debugInstruction`', e, s);
   }
-  for (final subs in subscriptions) {
-    subs.cancel();
-  }
+  cancelSubscriptions();
 }

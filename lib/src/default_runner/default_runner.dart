@@ -65,8 +65,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     Arguments arguments,
     Logger logger,
   ) {
-    final isVerboseModeAvailable =
-        app.metadata.options?.isVerboseModeAvailable != false;
+    final isVerboseModeAvailable = app.options.isVerboseModeAvailable != false;
 
     if (!isDebugVerboseLoggingEnabled && isVerboseModeAvailable) {
       logger.level = Level.INFO;

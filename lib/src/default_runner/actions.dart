@@ -20,9 +20,13 @@ class AppActions {
     this.logger,
     this.io,
   ) {
-    final exe = app.metadata.options?.exe;
+    final exe = app.options.exe;
     if (exe != null) {
       addExe(exe);
+    }
+    final exeMethods = app.options.exeMethods;
+    if (exeMethods != null) {
+      addExeMethods(exeMethods);
     }
   }
 
@@ -235,13 +239,28 @@ class AppActions {
     _exes.removeLast();
   }
 
+  Map<String, Object?>? _exeMethods;
+
+  void addExeMethods(Map<String, Object?> exeMethods) {
+    _exeMethods = exeMethods;
+  }
+
+  String _resolveExecutableInMethods(String executable) {
+    final value = _exeMethods?[executable];
+    if (value is String) {
+      return value;
+    }
+    // TODO(predatorx7): parse methods
+    return executable;
+  }
+
   Future<String> getResolvedExecutable() async {
     logger.info(_exes.join(', '));
     for (var i = _exes.length - 1; i >= 0; i--) {
       final exe = _exes[i];
       if (exe.isEmpty) continue;
       final executable = await findExecutable(exe);
-      if (executable != null) return executable;
+      if (executable != null) return _resolveExecutableInMethods(executable);
     }
 
     final fallbackShell = Platform.isWindows ? 'powershell.exe' : '/usr/bin/sh';

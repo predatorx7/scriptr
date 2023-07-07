@@ -40,18 +40,36 @@ class AuthorSection {
 @JsonSerializable()
 class OptionsSection {
   const OptionsSection({
-    this.isVerboseModeAvailable,
+    bool? isVerboseModeAvailable,
     this.exe,
-  });
+    this.exeMethods,
+  }) : isVerboseModeAvailable = isVerboseModeAvailable ?? true;
 
   @JsonKey(name: 'verbose_mode_available')
+
+  /// Is verbose mode available? Defaults to true.
   final bool? isVerboseModeAvailable;
 
   @JsonKey(name: 'exe')
+
+  /// Default executable
   final String? exe;
+
+  @JsonKey(name: 'exe_methods')
+
+  /// Default executable
+  final Map<String, Object?>? exeMethods;
 
   factory OptionsSection.fromJson(Map<String, Object?> json) =>
       _$OptionsSectionFromJson(json);
+
+  factory OptionsSection.fromMetadataJson(Map<String, Object?>? json) {
+    final options = json?['options'];
+    if (options == null || options is! Map<String, dynamic>) {
+      return const OptionsSection();
+    }
+    return OptionsSection.fromJson(options);
+  }
 
   Map<String, Object?> toJson() => _$OptionsSectionToJson(this);
 }
@@ -60,7 +78,6 @@ class OptionsSection {
 class AppMetadata {
   const AppMetadata({
     this.scriptrVersion,
-    this.options,
     this.name,
     this.version,
     this.legalese,
@@ -70,9 +87,6 @@ class AppMetadata {
 
   @JsonKey(name: 'scriptr')
   final String? scriptrVersion;
-
-  @JsonKey(name: 'options')
-  final OptionsSection? options;
 
   @JsonKey(name: 'name')
   final String? name;

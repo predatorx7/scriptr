@@ -11,10 +11,12 @@ typedef ScriptAppJsonFactory = ScriptApp Function(Map<String, Object?> json);
 
 class ScriptApp {
   final AppMetadata metadata;
+  final OptionsSection options;
   final Map<String, ScriptCommand> commands;
 
   const ScriptApp(
     this.metadata,
+    this.options,
     this.commands,
   );
 
@@ -53,6 +55,7 @@ class ScriptApp {
 
           return ScriptApp(
             AppMetadata.fromJson(json),
+            OptionsSection.fromMetadataJson(json),
             Map.fromEntries(commandEntries),
           );
         };
@@ -60,6 +63,7 @@ class ScriptApp {
   Map<String, Object?> toJson() {
     return {
       ...metadata.toJson(),
+      'options': options.toJson(),
       'commands': commands,
     };
   }

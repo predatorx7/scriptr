@@ -35,7 +35,7 @@ class ScriptApp {
 
   static final versionedScriptApps =
       SplayTreeMap<Version, ScriptAppJsonFactory>()
-        ..[Version(1, 0, 0)] = (Map<String, Object?> json) {
+        ..[Version(0, 1, 0)] = (Map<String, Object?> json) {
           logging.info('parsing: ${json.keys.join(", ")}');
           final rootCommandsJson = withoutReservedEntries(
             json['commands'] as Map<String, Object?>?,

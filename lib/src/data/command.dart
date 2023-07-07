@@ -51,7 +51,13 @@ class ScriptFunctions {
   final List<String> instructions;
 
   String? get executable {
-    //
+    final parameterEnd = signature.indexOf(')');
+    if (parameterEnd == -1 || parameterEnd >= signature.length - 2) return null;
+    final executable = signature.substring(
+      parameterEnd + 1,
+      signature.length,
+    );
+    return executable;
   }
 
   Map<String, List<Type>> get parameters {

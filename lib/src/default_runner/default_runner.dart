@@ -68,20 +68,21 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     final isVerboseModeAvailable =
         app.metadata.options?.isVerboseModeAvailable != false;
 
-    if (isVerboseModeAvailable) {
-      logger.level = Level.ALL;
-    } else {
+    if (!isDebugVerboseLoggingEnabled && isVerboseModeAvailable) {
+      logger.level = Level.INFO;
       final isVerbose = arguments.containsNamedParameter(
         Parameter.named('verbose', 'v'),
       );
       if (isVerbose) {
-        logger.level = Level.INFO;
-      } else {
-        logger.level = Level.WARNING;
+        logger.level = Level.FINE;
       }
     }
 
-    logger.fine('logger.level: ${logger.level}');
+    logger.fine({
+      'isVerboseModeAvailable': isVerboseModeAvailable,
+      'isDebugVerboseLoggingEnabled': isDebugVerboseLoggingEnabled,
+      'logger.level': logger.level,
+    });
   }
 
   Future<void> evaluateCommandArguments(
@@ -130,6 +131,10 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
             targetCommandResult.argument,
           );
           if (resolvedParameters == null) continue;
+          final exe = function.executable;
+          if (exe != null) {
+            scriptAction.addExe(exe);
+          }
           await scriptAction.invokeFunction(
             function,
             resolvedParameters,
@@ -207,7 +212,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
   @override
   void onLogs(LogRecord event, CliIO io) {
     final isError = event.level >= Level.SEVERE;
-    if (isVerboseLoggingEnabled && _log.isLoggable(event.level)) {
+    if (isDebugVerboseLoggingEnabled && _log.isLoggable(event.level)) {
       _log.log(
         isError ? Level.SEVERE : Level.INFO,
         event.message,

@@ -144,11 +144,6 @@ Future<void> runProcess(
   final debugInstruction = '$executable ${instructions.join("; $executable ")}';
   logger('runProcess').fine(debugInstruction);
   try {
-    final buffer = StringBuffer();
-    for (final instruction in instructions) {
-      final cmd = '$executable $instruction\n';
-      buffer.write(cmd);
-    }
     final process = await Process.start(
       executable,
       [],
@@ -156,7 +151,9 @@ Future<void> runProcess(
     );
     subscriptions.add(process.stdout.listen(io.stdout.add));
     subscriptions.add(process.stderr.listen(io.stderr.add));
-    process.stdin.writeAll(instructions);
+    for (final instruction in instructions) {
+      process.stdin.writeln(instruction);
+    }
     subscriptions.add(io.stdin.listen(process.stdin.add));
     await process.exitCode;
   } catch (e, s) {

@@ -10,10 +10,10 @@ extension LoggerUtils on Logger {
   }
 }
 
-final bool isVerboseLoggingEnabled = () {
+final bool isDebugVerboseLoggingEnabled = () {
   final debug = Platform.environment['DEBUG'];
-  final isVerbose = debug != null && debug.isNotEmpty && debug == '*';
-  return isVerbose;
+  final isDebugging = debug != null && debug.isNotEmpty;
+  return isDebugging;
 }();
 
 const _defaultLoggerLevel = Level.WARNING;
@@ -22,20 +22,20 @@ Level _getLoggerLevelFromDebug() {
   final debug = Platform.environment['DEBUG'];
   if (debug == '*') {
     return Level.ALL;
-  } else if (debug == null || debug.isEmpty) {
-    return _defaultLoggerLevel;
-  } else {
+  } else if (debug != null && debug.isNotEmpty) {
     final debugInt = int.tryParse(debug);
     for (final level in Level.LEVELS) {
       if (level.value == debugInt || level.name == debug) return level;
     }
-    if (debugInt == null) return Level.INFO;
-    return Level('CUSTOM', debugInt);
+    if (debugInt != null) {
+      return Level('CUSTOM', debugInt);
+    }
   }
+  return _defaultLoggerLevel;
 }
 
 final Level _loggerLevelFromDebug = () {
-  if (isVerboseLoggingEnabled) {
+  if (isDebugVerboseLoggingEnabled) {
     return _getLoggerLevelFromDebug();
   } else {
     return _defaultLoggerLevel;

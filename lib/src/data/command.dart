@@ -50,6 +50,10 @@ class ScriptFunctions {
   final String signature;
   final List<String> instructions;
 
+  String? get executable {
+    //
+  }
+
   Map<String, List<Type>> get parameters {
     final parameterStart = signature.indexOf('(');
     final parameterEnd = signature.indexOf(')');

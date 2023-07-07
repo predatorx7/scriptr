@@ -1,4 +1,4 @@
-scriptr: ^1.0.0
+scriptr: ^0.1.0
 
 name: Goto
 version: 0.1.0
@@ -15,7 +15,15 @@ author:
 
 options:
     verbose_mode_available: true
-    exe: /usr/bin/bash
+    exe: m_exe
+    exe_methods:
+        m_exe:
+            platform:windows: m_pwsh
+            platform:linux: m_posix
+        m_pwsh(args):
+            powershell.exe -Command "${args}"
+        m_posix(args):
+            bash -c "${args}"
 
 commands:
     get:
@@ -23,16 +31,16 @@ commands:
             - g
         info:
             description: Gets a path address matching the key
-        "call(key: string):/usr/bin/dart": |
-            final path = exec('python findpath.py ${key}');
-            out('${key} -> ${path}');
+        "call(key: string)": |
+            echo "getting path address by ${key}"
+            echo "path for ${key} is ${value}"
     set:
         alias:
             - "save"
             - "s"
         info:
             description: Saves a path with a key
-        "call(key: string, path: string?):/usr/bin/bash": |
+        "call(key: string, path: string?)": |
             final valuePath = path == null ? exec("pwd") : path;
             out('Saving "$valuePath" with key "$key".. ');
             exec("python savepath.py ${key} ${path}");
@@ -58,7 +66,6 @@ commands:
                 abbr: a
                 default: false
                 description: Remove all saved key-value records
-        exe: /usr/bin/java
         "call(key: string)": |
             exec("python remove_key.py ${key}");
         "call(all: bool)": |

@@ -236,6 +236,7 @@ class AppActions {
   }
 
   Future<String> getResolvedExecutable() async {
+    logger.info(_exes.join(', '));
     for (var i = _exes.length - 1; i >= 0; i--) {
       final exe = _exes[i];
       if (exe.isEmpty) continue;

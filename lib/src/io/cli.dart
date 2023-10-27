@@ -1,5 +1,7 @@
 import 'dart:io' as io;
 
+import 'package:io/io.dart';
+
 class CliIO {
   final io.Stdin? _stdin;
   final io.Stdout? _stdout;
@@ -15,12 +17,12 @@ class CliIO {
 
   final io.IOOverrides? _overrides = io.IOOverrides.current;
 
-  io.Stdin get stdin => _stdin ?? _overrides?.stdin ?? io.stdin;
+  late final stdin = SharedStdIn(_stdin ?? _overrides?.stdin ?? io.stdin);
   io.Stdout get stdout => _stdout ?? _overrides?.stdout ?? io.stdout;
   io.Stdout get stderr => _stderr ?? _overrides?.stderr ?? io.stderr;
 
   /// Read input via [stdin.readLineSync].
-  String? readln() => stdin.readLineSync();
+  Future<String> readln() => stdin.nextLine();
 
   /// Write message via [stdout.write].
   void write(String? message) => stdout.write(message);

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:colorize/colorize.dart';
+import 'package:io/ansi.dart' as ansi;
 import 'package:logging/logging.dart';
 
 import 'package:scriptr/src/logging.dart';
@@ -147,10 +147,18 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
       scriptAction.logger.info(
         scriptAction.createScriptCommandHelpMessage(currentCommands),
       );
+      scriptAction.logger.severe(
+        scriptAction.notMatchedMessageIn(currentCommands, arguments),
+      );
+    } else {
+      // Could not find a command named "".
+      scriptAction.logger.severe(
+        scriptAction.notMatchedMessageIn(currentCommands, arguments),
+      );
+      scriptAction.logger.info(
+        scriptAction.createGlobalHelpMessage(),
+      );
     }
-    scriptAction.logger.severe(
-      scriptAction.notMatchedMessageIn(currentCommands, arguments),
-    );
   }
 
   CommandSearchResult? findScriptCommand(
@@ -227,21 +235,21 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
           if (message.isNotEmpty && message != 'null') message,
           if (event.error != null) event.error,
         ].join('\n');
-        errorMessage = Colorize(errorMessage).red().toString();
+        errorMessage = ansi.red.wrap(errorMessage) ?? '';
         io.writelnError(errorMessage);
       } else {
         String output = message;
         final level = event.level;
         if (level >= Level.SEVERE) {
-          output = Colorize(message).red().toString();
+          output = ansi.red.wrap(message) ?? '';
         } else if (level >= Level.WARNING) {
-          output = Colorize(message).yellow().toString();
+          output = ansi.yellow.wrap(message) ?? '';
         } else if (level >= Level.INFO) {
           output = message;
         } else if (level >= Level.CONFIG) {
-          output = Colorize(message).blue().toString();
+          output = ansi.blue.wrap(message) ?? '';
         } else if (level >= Level.FINE) {
-          output = Colorize(message).lightYellow().toString();
+          output = ansi.lightYellow.wrap(message) ?? '';
         }
         io.writeln(output);
       }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
+import 'package:io/io.dart' as io;
 import 'package:path/path.dart';
 import 'package:scriptr/src/io/cli.dart';
 import 'package:scriptr/src/logging.dart';
@@ -132,32 +133,30 @@ Future<void> runProcess(
   String executable,
   Logger logger,
   List<String> instructions,
-  CliIO io,
+  CliIO cliIO,
 ) async {
-  final subscriptions = <StreamSubscription>[];
-  void cancelSubscriptions() {
-    for (final subs in subscriptions) {
-      subs.cancel();
-    }
-  }
-
   final debugInstruction = '$executable ${instructions.join("; $executable ")}';
   logger('runProcess').fine(debugInstruction);
   try {
-    final process = await Process.start(
+    final pm = io.ProcessManager(
+      stdin: cliIO.stdin,
+      stdout: cliIO.stdout,
+      stderr: cliIO.stderr,
+    );
+
+    final process = await pm.spawn(
       executable,
       [],
       runInShell: true,
     );
-    subscriptions.add(process.stdout.listen(io.stdout.add));
-    subscriptions.add(process.stderr.listen(io.stderr.add));
+
     for (final instruction in instructions) {
       process.stdin.writeln(instruction);
     }
-    subscriptions.add(io.stdin.listen(process.stdin.add));
-    await process.exitCode;
+
+    final exitCode = await process.exitCode;
+    exit(exitCode);
   } catch (e, s) {
     logger.severe('Failed to run process `$debugInstruction`', e, s);
   }
-  cancelSubscriptions();
 }

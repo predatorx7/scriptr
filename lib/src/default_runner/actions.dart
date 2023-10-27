@@ -142,6 +142,9 @@ class AppActions {
       appExecutableName,
       ...parentCommands.map((e) => e.name.toLowerCase())
     ].join(' ');
+    final args = arguments.length > 1
+        ? arguments.toList().sublist(1)
+        : const <Argument>[];
     final fullCommandName = commands.map((e) => e.name.toLowerCase()).join(' ');
     buffer.writeln();
     if (targetCommand != null) {
@@ -149,9 +152,6 @@ class AppActions {
       final seeText =
           'See \'$parentFullCommandName help ${targetCommand.name}\'.';
       if (functions != null && functions.isNotEmpty) {
-        final args = arguments.length > 1
-            ? arguments.toList().sublist(1)
-            : const <Argument>[];
         if (args.isNotEmpty) {
           buffer.writeln(
             '$appExecutableName: Unknown arguments `${args.toSpaceSeparatedString()}` for $fullCommandName command. $seeText',
@@ -166,6 +166,12 @@ class AppActions {
           '$appExecutableName: not a $fullCommandName sub-command. $seeText',
         );
       }
+    } else if (args.isNotEmpty) {
+      // TODO: FIX
+      final seeText = 'See \'$parentFullCommandName help\'.';
+      buffer.writeln(
+        '$appExecutableName: Could not find a command named "${args.first}". $seeText',
+      );
     } else {
       final seeText = 'See \'$parentFullCommandName help\'.';
       buffer.writeln(

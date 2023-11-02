@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
+import 'package:scriptr/src/tracking.dart';
 
 import 'arguments/arguments.dart';
 import 'data/data.dart';
@@ -55,13 +56,18 @@ Future<void> runApp(
 
   runner.attachLogger(mainLogger, cliIO);
 
+  mainLogger.fine('attached logger after ${appStartTracking.elapsedString()}');
+
   final runnerLogger = mainLogger('runApp');
 
   return runZonedGuarded(() async {
     final app = await runner.createApp();
     final parsedArguments = await runner.parseArguments(app);
+    mainLogger.fine(
+      'argument parsed after ${appStartTracking.elapsedString()}',
+    );
     await runner.run(app, parsedArguments, cliIO);
   }, (error, stack) {
-    runnerLogger.severe('Application crashed', error, stack);
+    runnerLogger.severe('', error, stack);
   });
 }

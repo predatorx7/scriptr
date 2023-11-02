@@ -2,13 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
+import 'package:scriptr/scriptr.dart';
 import 'package:scriptr/src/io/cli.dart';
+import 'package:scriptr/src/utils/arguments.dart';
 
 import '../arguments/arguments.dart';
 import '../utils/exe.dart';
 import '../utils/interpolations.dart';
 import '../data/data.dart';
 import 'dart:math' as math;
+
+import '../utils/string_print.dart';
 
 class AppActions {
   final ScriptApp app;
@@ -233,10 +237,10 @@ class AppActions {
     return const {};
   }
 
-  final _exes = <String>[];
+  final _exes = <ExecutableAndArguments>[];
 
   void addExe(String exe) {
-    _exes.add(exe);
+    _exes.add(getExecutableAndArguments(exe));
   }
 
   void popExe() {
@@ -258,33 +262,43 @@ class AppActions {
     return executable;
   }
 
-  Future<String> getResolvedExecutable() async {
-    logger.info(_exes.join(', '));
+  Future<ExecutableAndArguments> getResolvedExecutable() async {
+    logger.config("script requested exes: ${_exes.join(', ')}");
     for (var i = _exes.length - 1; i >= 0; i--) {
       final exe = _exes[i];
-      if (exe.isEmpty) continue;
-      final executable = await findExecutable(exe);
-      if (executable != null) return _resolveExecutableInMethods(executable);
+      if (exe.executable.isEmpty) continue;
+      final executable = await findExecutable(exe.executable);
+      if (executable != null) {
+        return (
+          executable: _resolveExecutableInMethods(executable),
+          arguments: exe.arguments,
+        );
+      }
     }
+
+    const shellUserBinSh = '/usr/bin/sh';
 
     final fallbackShell = Platform.isWindows
         ? 'powershell.exe'
-        : await findExecutable('/usr/bin/sh') ?? '/bin/sh';
+        : await findExecutable(shellUserBinSh) ?? '/bin/sh';
 
+    final exesString = toStringForListOr(_exes.map((e) => e.executable));
     logger.warning(
-      'Failed to find ${_exes.join(", ")} in PATH. Using $fallbackShell.',
+      'Failed to find $exesString in PATH. Using $fallbackShell.',
     );
 
-    return fallbackShell;
+    return getExecutableAndArguments(fallbackShell);
   }
 
   Future<void> run(
     List<String> instructions,
   ) async {
     final executable = await getResolvedExecutable();
-    logger.finest('found target executable: `$executable`');
-    if (!await hasExecutionPermission(executable)) {
-      logger.severe('Executable $executable does not have permission to run.');
+    logger.config('Running instructions using `$executable`');
+    if (!await hasExecutionPermission(executable.executable)) {
+      logger.severe(
+        'Executable `$executable` does not have permission to run.',
+      );
     }
     logger.fine({
       'executable': executable,

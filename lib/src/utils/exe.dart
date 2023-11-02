@@ -7,6 +7,8 @@ import 'package:path/path.dart';
 import 'package:scriptr/src/io/cli.dart';
 import 'package:scriptr/src/logging.dart';
 
+import 'arguments.dart';
+
 List<String> getWindowsPathExtensions() {
   const windowsDefaultPathExt = <String>['.exe', '.bat', '.cmd', '.com'];
   const String windowsEnvPathSeparator = ';';
@@ -130,12 +132,13 @@ FutureOr<File?> findExecutableFromPath(String command) async {
 }
 
 Future<void> runProcess(
-  String executable,
+  ExecutableAndArguments executable,
   Logger logger,
   List<String> instructions,
   CliIO cliIO,
 ) async {
-  final debugInstruction = '$executable ${instructions.join("; $executable ")}';
+  final debugInstruction =
+      '${executable.executable} ${executable.arguments}\n\n${instructions.join("\n")}';
   logger('runProcess').fine(debugInstruction);
   try {
     final pm = io.ProcessManager(
@@ -145,8 +148,8 @@ Future<void> runProcess(
     );
 
     final process = await pm.spawn(
-      executable,
-      [],
+      executable.executable,
+      executable.arguments,
       runInShell: true,
     );
 

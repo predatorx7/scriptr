@@ -17,26 +17,30 @@ const _typeByNames = {
   '?': Null,
 };
 
+class ScriptrValueTypeError extends ScriptrError {
+  const ScriptrValueTypeError(super.message);
+}
+
 Object resolveValueForTypes(String value, List<Type> types) {
   for (final type in types) {
     switch (type) {
-      case String:
+      case const (String):
         return value;
-      case DateTime:
+      case const (DateTime):
         return DateTime.parse(value);
-      case num:
+      case const (num):
         return num.parse(value);
-      case int:
+      case const (int):
         return num.parse(value);
-      case double:
+      case const (double):
         return num.parse(value);
-      case bool:
+      case const (bool):
         final v = value.toLowerCase().trim();
         return v == 'true' || v != '0' || v == 'y';
       default:
     }
   }
-  throw ScriptrError(
+  throw ScriptrValueTypeError(
     'Failed to parse value "$value" as a type from $types',
   );
 }
@@ -79,10 +83,12 @@ class ScriptFunctions {
         final variableName = parameterItems.first;
         final types = <Type>[];
         parameters[variableName] = types;
-        final argument = parameterItems[1].toLowerCase();
-        for (final type in _typeByNames.entries) {
-          if (argument.contains(type.key)) {
-            types.add(type.value);
+        if (parameterItems.length >= 2) {
+          final argument = parameterItems[1].toLowerCase();
+          for (final type in _typeByNames.entries) {
+            if (argument.contains(type.key)) {
+              types.add(type.value);
+            }
           }
         }
       }

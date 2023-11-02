@@ -14,7 +14,7 @@ const defaultConfigFileNames = <String>[
   'scriptr.json',
 ];
 
-final logger = logging('scriptr_utils.dart');
+final logger = mainLogger('scriptr_utils.dart');
 
 bool hasValidConfigFileExtension(String path) {
   final lowerCasedPath = path.toLowerCase();
@@ -97,7 +97,7 @@ Future<String> getConfigContentFromArgs(List<String> args) async {
   );
 }
 
-/// Finds the correct script file and returns this script file's contents
+/// Finds the correct script file using arguments, current location where scriptr is executed, and returns that script file's contents
 Future<String> getConfigContent([
   List<String>? args,
 ]) async {
@@ -130,6 +130,7 @@ Future<String> getConfigContent([
   return scriptContent;
 }
 
+/// Returns [Map] after parsing [content] as yaml or json.
 Map<String, Object?> getConfigContentAsMap(String content) {
   final log = logger('getScriptContentAsMap');
   final couldBeJson = content.trimLeft().startsWith('{');

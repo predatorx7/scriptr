@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:io/ansi.dart' as ansi;
 import 'package:logging/logging.dart';
 
-import 'package:scriptr/src/logging.dart';
 import 'package:scriptr/src/io/cli.dart';
+import 'package:scriptr/src/logging.dart' show getPlainTextStringFrom;
 import 'package:scriptr/src/runner.dart';
 import 'package:scriptr/src/utils/config_file.dart';
 
@@ -18,7 +18,7 @@ typedef CommandSearchResult = ({
 });
 
 class DefaultScriptAppRunner extends ScriptAppRunner {
-  const DefaultScriptAppRunner(this.args);
+  DefaultScriptAppRunner(this.args);
 
   final List<String> args;
 
@@ -39,10 +39,9 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
   FutureOr<void> run(
     ScriptApp app,
     Arguments arguments,
-    Logger logger,
     CliIO io,
   ) async {
-    setLoggerLevel(app, arguments, logger);
+    updateLoggerLevelForVerbose(app, arguments);
 
     final scriptAction = AppActions(app, logger, io);
 
@@ -51,7 +50,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
       return;
     }
 
-    logger.finest('parsed arguments: $arguments');
+    logger.finer('parsed arguments: $arguments');
 
     return evaluateCommandArguments(
       scriptAction,
@@ -60,28 +59,22 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     );
   }
 
-  void setLoggerLevel(
+  void updateLoggerLevelForVerbose(
     ScriptApp app,
     Arguments arguments,
-    Logger logger,
   ) {
+    if (logger.level < Level.CONFIG) return;
+
     final isVerboseModeAvailable = app.options.isVerboseModeAvailable != false;
+    if (!isVerboseModeAvailable) return;
 
-    if (!isDebugVerboseLoggingEnabled && isVerboseModeAvailable) {
-      logger.level = Level.INFO;
-      final isVerbose = arguments.containsNamedParameter(
-        Parameter.named('verbose', 'v'),
-      );
-      if (isVerbose) {
-        logger.level = Level.FINE;
-      }
-    }
+    final isVerbose = arguments.containsNamedParameter(
+      Parameter.named('verbose', 'v'),
+    );
 
-    logger.fine({
-      'isVerboseModeAvailable': isVerboseModeAvailable,
-      'isDebugVerboseLoggingEnabled': isDebugVerboseLoggingEnabled,
-      'logger.level': logger.level,
-    });
+    if (!isVerbose) return;
+
+    logger.level = Level.CONFIG;
   }
 
   Future<void> evaluateCommandArguments(
@@ -95,7 +88,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
       commandsMap,
       arguments,
     );
-    logger.info({'targetCommandResult': targetCommandResult});
+    logger.fine({'targetCommandResult': targetCommandResult});
     late final currentCommands = [
       ...parentCommands,
     ];
@@ -124,12 +117,19 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
         final exe = targetCommand.section?.exe;
         if (exe != null) scriptAction.addExe(exe);
         for (final function in functions) {
-          final resolvedParameters = scriptAction.resolveParameters(
-            function.parameters,
-            arguments,
-            targetCommandResult.argument,
-          );
-          if (resolvedParameters == null) continue;
+          late final Map<String, Object?> resolvedParameters;
+
+          try {
+            resolvedParameters = scriptAction.resolveParameters(
+              function.parameters,
+              arguments,
+              targetCommandResult.argument,
+              true,
+            );
+          } on ScriptrValueTypeError {
+            resolvedParameters = {};
+          }
+
           final exe = function.executable;
           if (exe != null) {
             scriptAction.addExe(exe);
@@ -166,7 +166,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     Map<String, ScriptCommand> commandsMap,
     Arguments arguments,
   ) {
-    logger.info({
+    logger.finer({
       'argument.len': arguments.length,
       'arguments': arguments,
     });
@@ -214,45 +214,47 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     return null;
   }
 
-  static final _log = logging('DefaultSciptrApp.onLogs');
-
   @override
-  void onLogs(LogRecord event, CliIO io) {
-    final isError = event.level >= Level.SEVERE;
-    if (isDebugVerboseLoggingEnabled && _log.isLoggable(event.level)) {
-      _log.log(
-        isError ? Level.SEVERE : Level.INFO,
-        event.message,
-        event.error,
-        event.stackTrace,
-        event.zone,
-      );
-    } else {
-      final message = event.message;
+  void attachLogger(Logger logger, CliIO cliIO) {
+    super.attachLogger(logger, cliIO);
 
-      if (isError) {
-        String errorMessage = [
-          if (message.isNotEmpty && message != 'null') message,
-          if (event.error != null) event.error,
-        ].join('\n');
-        errorMessage = ansi.red.wrap(errorMessage) ?? '';
-        io.writelnError(errorMessage);
+    final isScriptrLoggingEnabled = args.any(
+      (e) => e.toLowerCase().contains('--scriptr-logging'),
+    );
+
+    logger.level = isScriptrLoggingEnabled ? Level.ALL : Level.INFO;
+
+    logger.onRecord.listen((event) {
+      _onLogs(event, cliIO);
+    });
+  }
+
+  void _onLogs(LogRecord event, CliIO io) {
+    final isError = event.level >= Level.SEVERE;
+    final message = event.message;
+
+    if (isError) {
+      String errorMessage = [
+        if (message.isNotEmpty && message != 'null') message,
+        if (event.error != null) event.error,
+      ].join('\n');
+      errorMessage = ansi.red.wrap(errorMessage) ?? '';
+      io.writelnError(errorMessage);
+    } else {
+      final String output;
+      final level = event.level;
+      if (level >= Level.SEVERE) {
+        output = ansi.red.wrap(message) ?? '';
+      } else if (level >= Level.WARNING) {
+        output = ansi.yellow.wrap(message) ?? '';
+      } else if (level >= Level.INFO) {
+        output = message;
+      } else if (level >= Level.CONFIG) {
+        output = ansi.blue.wrap(message) ?? '';
       } else {
-        String output = message;
-        final level = event.level;
-        if (level >= Level.SEVERE) {
-          output = ansi.red.wrap(message) ?? '';
-        } else if (level >= Level.WARNING) {
-          output = ansi.yellow.wrap(message) ?? '';
-        } else if (level >= Level.INFO) {
-          output = message;
-        } else if (level >= Level.CONFIG) {
-          output = ansi.blue.wrap(message) ?? '';
-        } else if (level >= Level.FINE) {
-          output = ansi.lightYellow.wrap(message) ?? '';
-        }
-        io.writeln(output);
+        output = ansi.lightYellow.wrap(getPlainTextStringFrom(event)) ?? '';
       }
+      io.writeln(output);
     }
   }
 }

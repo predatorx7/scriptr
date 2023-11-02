@@ -66,7 +66,7 @@ class InterpolationOption {
   /// }
   /// ```
   factory InterpolationOption({
-    String prefix = r'${',
+    String prefix = r'{',
     String suffix = '}',
     String subKeyPointer = '.',
   }) {
@@ -156,7 +156,13 @@ class Interpolation {
   factory Interpolation({InterpolationOption? option}) =>
       Interpolation._init(option ?? InterpolationOption());
 
-  static final instance = Interpolation();
+  static final instance = Interpolation(
+    option: InterpolationOption(
+      prefix: r'${',
+      suffix: '}',
+      subKeyPointer: '.',
+    ),
+  );
 
   String _missingKeyKeepAlive(String key) =>
       '${_option._prefix}$key${_option._suffix}';

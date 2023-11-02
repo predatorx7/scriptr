@@ -22,7 +22,7 @@ class ScriptApp {
 
   factory ScriptApp.fromJson(Map<String, Object?> json) {
     final scriptrVersion = (json['scriptr'] ?? '^1.0.0').toString();
-    logging.config('Parsing version: $scriptrVersion');
+    mainLogger.fine('Parsing version: $scriptrVersion');
     final version = VersionConstraint.parse(scriptrVersion);
 
     final factoryVersions = versionedScriptApps.keys.toList()..sort();
@@ -38,7 +38,7 @@ class ScriptApp {
   static final versionedScriptApps =
       SplayTreeMap<Version, ScriptAppJsonFactory>()
         ..[Version(0, 1, 0)] = (Map<String, Object?> json) {
-          logging.info('parsing: ${json.keys.join(", ")}');
+          mainLogger.fine('parsing: ${json.keys.join(", ")}');
           final rootCommandsJson = withoutReservedEntries(
             json['commands'] as Map<String, Object?>?,
           );

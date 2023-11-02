@@ -108,7 +108,7 @@ extension ArgumentsExtension on Arguments {
     final namedArgs = whereType<NamedAbbreviatedArgument>();
     if (namedArgs.isEmpty) return preArg;
     final postArg = namedArgs.toRawString();
-    return '$preArg $postArg';
+    return '$preArg $postArg'.trim();
   }
 }
 

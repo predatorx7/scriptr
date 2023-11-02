@@ -142,9 +142,6 @@ class AppActions {
       appExecutableName,
       ...parentCommands.map((e) => e.name.toLowerCase())
     ].join(' ');
-    final args = arguments.length > 1
-        ? arguments.toList().sublist(1)
-        : const <Argument>[];
     final fullCommandName = commands.map((e) => e.name.toLowerCase()).join(' ');
     buffer.writeln();
     if (targetCommand != null) {
@@ -152,6 +149,7 @@ class AppActions {
       final seeText =
           'See \'$parentFullCommandName help ${targetCommand.name}\'.';
       if (functions != null && functions.isNotEmpty) {
+        final args = arguments.toList().sublist(1);
         if (args.isNotEmpty) {
           buffer.writeln(
             '$appExecutableName: Unknown arguments `${args.toSpaceSeparatedString()}` for $fullCommandName command. $seeText',
@@ -166,11 +164,10 @@ class AppActions {
           '$appExecutableName: not a $fullCommandName sub-command. $seeText',
         );
       }
-    } else if (args.isNotEmpty) {
-      // TODO: FIX
+    } else if (arguments.isNotEmpty) {
       final seeText = 'See \'$parentFullCommandName help\'.';
       buffer.writeln(
-        '$appExecutableName: Could not find a command named "${args.first}". $seeText',
+        '$appExecutableName: Could not find a command named "${arguments.toSpaceSeparatedString()}". $seeText',
       );
     } else {
       final seeText = 'See \'$parentFullCommandName help\'.';
@@ -181,10 +178,11 @@ class AppActions {
     return buffer.toString();
   }
 
-  Map<String, Object?>? resolveParameters(
+  Map<String, Object?> resolveParameters(
     Map<String, List<Type>> parameters,
     Arguments arguments,
     Argument commandArgument,
+    bool strict,
   ) {
     final parameterValues = <String, Object?>{};
     for (final parameter in parameters.entries) {
@@ -220,7 +218,7 @@ class AppActions {
       if (parameterValues[parameter.key] == null) {
         if (!parameter.value.contains(Null)) {
           logger.fine('No matching argument for parameter ${parameter.key}');
-          return null;
+          return const {};
         } else {
           parameterValues[parameter.key] = null;
         }
@@ -232,7 +230,7 @@ class AppActions {
       return parameterValues;
     }
     logger.warning('no matching arguments for the parameters');
-    return null;
+    return const {};
   }
 
   final _exes = <String>[];
@@ -269,7 +267,9 @@ class AppActions {
       if (executable != null) return _resolveExecutableInMethods(executable);
     }
 
-    final fallbackShell = Platform.isWindows ? 'powershell.exe' : '/usr/bin/sh';
+    final fallbackShell = Platform.isWindows
+        ? 'powershell.exe'
+        : await findExecutable('/usr/bin/sh') ?? '/bin/sh';
 
     logger.warning(
       'Failed to find ${_exes.join(", ")} in PATH. Using $fallbackShell.',

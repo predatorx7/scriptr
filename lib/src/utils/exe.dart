@@ -139,7 +139,8 @@ Future<void> runProcess(
 ) async {
   final debugInstruction =
       '${executable.executable} ${executable.arguments}\n\n${instructions.join("\n")}';
-  logger('runProcess').fine(debugInstruction);
+  final log = logger('runProcess');
+  log.fine(debugInstruction);
   try {
     final pm = io.ProcessManager(
       stdin: cliIO.stdin,
@@ -153,7 +154,29 @@ Future<void> runProcess(
       runInShell: true,
     );
 
+    final exe = executable.executable;
+    if (instructions.lastOrNull?.contains('exit') != true) {
+      if (exe.contains('python')) {
+        instructions.add('exit()');
+      } else if (exe == '/bin/sh' ||
+          exe == '/usr/bin/sh' ||
+          exe.contains('bash') ||
+          exe.contains('zsh') ||
+          exe.contains('pwsh') ||
+          exe.contains('powershell') ||
+          exe.contains('cmd')) {
+        instructions.add('exit');
+      } else {
+        log.fine(
+          'Could not exit automatically, unknown environment. Processes ran from unknown environments should exit on their own.',
+        );
+      }
+    }
+
     for (final instruction in instructions) {
+      log.finest(
+        'Writing instruction to process stdin $instruction',
+      );
       process.stdin.writeln(instruction);
     }
 

@@ -6,6 +6,7 @@ import 'package:io/io.dart' as io;
 import 'package:path/path.dart';
 import 'package:scriptr/src/io/cli.dart';
 import 'package:scriptr/src/logging.dart';
+import 'package:scriptr/src/utils/config_file.dart';
 
 import 'arguments.dart';
 
@@ -17,8 +18,7 @@ List<String> getWindowsPathExtensions() {
     ...windowsDefaultPathExt,
     ...?Platform.environment['PATHEXT']
         ?.split(windowsEnvPathSeparator)
-        .map((ext) => ext.toLowerCase())
-        .toList(growable: false)
+        .map((ext) => ext.toLowerCase()),
   ];
 }
 
@@ -34,19 +34,17 @@ List<String>? getWindowsPath() {
   return [
     ...?Platform.environment['PATH']
         ?.split(windowsEnvPathSeparator)
-        .map((ext) => ext.toLowerCase())
-        .toList(growable: false)
+        .map((ext) => ext.toLowerCase()),
   ];
 }
 
 List<String>? getPosixPath() {
-  const String windowsEnvPathSeparator = ';';
+  const String unixEnvPathSeparator = ':';
 
   return [
     ...?Platform.environment['PATH']
-        ?.split(windowsEnvPathSeparator)
-        .map((ext) => ext.toLowerCase())
-        .toList(growable: false)
+        ?.split(unixEnvPathSeparator)
+        .map((ext) => ext.toLowerCase()),
   ];
 }
 
@@ -56,11 +54,14 @@ List<String> getExecutableExtensions() {
 }
 
 FutureOr<String?> findExecutable(String exe) async {
+  final log = logger('findExecutable').finest;
   final exeBasename = basename(exe);
+  log('basename of "$exe" == $exeBasename');
   if (exeBasename.isEmpty) return null;
   final fileExecutable = File(exe);
-  if (fileExecutable.existsSync()) return fileExecutable.absolute.path;
+  if (await fileExecutable.exists()) return fileExecutable.absolute.path;
   final executable = await findExecutableFromPath(exe);
+  log('Executable $exe in path $executable');
   if (executable != null) return executable.path;
   return null;
 }
@@ -70,62 +71,53 @@ List<String>? getEnvironmentPath() {
   return getPosixPath();
 }
 
-Future<bool> hasExecutionPermission(String executablePath) async {
-  if (Platform.isWindows) {
-    return true;
-  }
-  final executableFile = File(executablePath);
-  final stats = await executableFile.stat();
-  if (stats.type == FileSystemEntityType.file ||
-      stats.type == FileSystemEntityType.link) {
-    // Check executable permission
-    if (stats.mode & 0x49 != 0) {
-      // binary 001001001
-      // executable
-      return true;
-    }
-  }
-  return false;
-}
-
 /// Find command in path
 FutureOr<File?> findExecutableFromPath(String command) async {
+  final log = logger('findExecutableFromPath').finest;
   if (await File(command).exists()) {
     return File(command);
   }
 
   final paths = getEnvironmentPath();
+  log('paths length: ${paths?.length}');
   if (paths == null) return null;
   final extensions = getExecutableExtensions();
   final commandPath = absolute(canonicalize(command));
   final commandBasename = basename(commandPath);
   final commandBasenameWithoutExt = basenameWithoutExtension(commandPath);
-  final possibleCommandNames = {
-    commandBasenameWithoutExt,
+  final possibleCommandNames = [
+    commandPath,
     commandBasename,
+    commandBasenameWithoutExt,
     for (final ext in extensions) '$commandBasenameWithoutExt$ext',
-  };
+  ];
+  log('possible command names: ${possibleCommandNames.join(", ")}');
   for (final path in paths) {
     final pathDirectory = Directory(path);
     if (!await pathDirectory.exists()) continue;
+
+    for (final i in possibleCommandNames) {
+      final fullName = File(join(path, i));
+      if (await fullName.exists()) return fullName.absolute;
+    }
     final maybeCommands = pathDirectory
         .listSync()
-        .where((it) {
-          return basenameWithoutExtension(it.path).toLowerCase() ==
-              commandBasenameWithoutExt.toLowerCase();
-        })
-        .where((it) {
-          final itPath = basename(it.path).toLowerCase();
-          for (final possibleCommandName in possibleCommandNames) {
-            if (possibleCommandName == itPath) return true;
-          }
-          return basenameWithoutExtension(itPath) ==
-              commandBasenameWithoutExt.toLowerCase();
-        })
         .where((it) => FileSystemEntity.isFileSync(it.path))
-        .map((e) => File(e.absolute.path));
+        .where((it) {
+      return basenameWithoutExtension(it.path).toLowerCase() ==
+          commandBasenameWithoutExt.toLowerCase();
+    }).where((it) {
+      final itPath = basename(it.path).toLowerCase();
+      for (final possibleCommandName in possibleCommandNames) {
+        if (possibleCommandName == itPath) return true;
+      }
+      return basenameWithoutExtension(itPath) ==
+          commandBasenameWithoutExt.toLowerCase();
+    }).map((e) => File(e.absolute.path));
 
-    return maybeCommands.firstOrNull;
+    final cmd = maybeCommands.firstOrNull;
+    if (cmd == null) continue;
+    return cmd;
   }
 
   return null;

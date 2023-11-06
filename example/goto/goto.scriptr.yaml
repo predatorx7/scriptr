@@ -18,12 +18,13 @@ options:
     exe: m_exe
     exe_methods:
         m_exe:
-            platform:windows: m_pwsh
-            platform:linux: m_posix
-        m_pwsh(args):
-            powershell.exe -Command "${args}"
-        m_posix(args):
-            bash -c "${args}"
+            platform.windows: powershell.exe
+            platform.linux: bash
+            platform.macos:
+             - python3
+             - zsh
+             - bash
+             - sh
 
 commands:
     get:

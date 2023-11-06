@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:io/io.dart';
 import 'package:logging/logging.dart';
 import 'package:scriptr/scriptr.dart';
-import 'package:scriptr/src/io/cli.dart';
 import 'package:scriptr/src/utils/arguments.dart';
+import 'package:yaml/yaml.dart';
 
-import '../arguments/arguments.dart';
 import '../utils/exe.dart';
 import '../utils/interpolations.dart';
 import '../data/data.dart';
@@ -24,14 +24,7 @@ class AppActions {
     this.logger,
     this.io,
   ) {
-    final exe = app.options.exe;
-    if (exe != null) {
-      addExe(exe);
-    }
-    final exeMethods = app.options.exeMethods;
-    if (exeMethods != null) {
-      addExeMethods(exeMethods);
-    }
+    setupExecutableFromOption(app.options);
   }
 
   String createGlobalHelpMessage() {
@@ -237,6 +230,13 @@ class AppActions {
     return const {};
   }
 
+  void setupExecutableFromOption(OptionsSection options) {
+    final String? exe = options.exe;
+    final Map<String, Object?>? exeMethods = options.exeMethods;
+    if (exe != null) addExe(exe);
+    if (exeMethods != null) addExeMethods(exeMethods);
+  }
+
   final _exes = <ExecutableAndArguments>[];
 
   void addExe(String exe) {
@@ -253,34 +253,63 @@ class AppActions {
     _exeMethods = exeMethods;
   }
 
-  String _resolveExecutableInMethods(String executable) {
+  Future<String?> _resolveExecutableInMethods(String executable) async {
     final value = _exeMethods?[executable];
+    logger.finer('Type of executable entry, ${value.runtimeType}');
     if (value is String) {
-      return value;
+      return await findExecutable(value);
     }
-    // TODO(predatorx7): parse methods
-    return executable;
+    if (value is Map) {
+      Object? result;
+      if (Platform.isWindows) {
+        result = value['platform.windows'];
+      } else if (Platform.isLinux) {
+        result = value['platform.linux'];
+      } else if (Platform.isMacOS) {
+        result = value['platform.macos'];
+      } else if (Platform.isFuchsia) {
+        result = value['platform.fuschia'];
+      } else if (Platform.isAndroid) {
+        result = value['platform.android'];
+      }
+      if (result is String) return result;
+      if (result is YamlList) {
+        result = result.toList().cast<String>();
+      }
+      if (result is List<String>) {
+        for (final exe in result) {
+          logger.finer('Testing $exe');
+          final e = await findExecutable(exe.toString());
+          logger.finer('Test result: $e');
+          if (e != null) return e;
+        }
+      }
+      logger.finer(
+        'No platform matched in $value, result was $result (${result.runtimeType})',
+      );
+    }
+    return await findExecutable(executable);
   }
 
   Future<ExecutableAndArguments> getResolvedExecutable() async {
     logger.config("script requested exes: ${_exes.join(', ')}");
     for (var i = _exes.length - 1; i >= 0; i--) {
       final exe = _exes[i];
+      logger.finer('Testing exe $exe');
       if (exe.executable.isEmpty) continue;
-      final executable = await findExecutable(exe.executable);
+      final executable = await _resolveExecutableInMethods(exe.executable);
+      logger.finer('Test result for exe "$exe" -> $executable');
       if (executable != null) {
         return (
-          executable: _resolveExecutableInMethods(executable),
+          executable: executable,
           arguments: exe.arguments,
         );
       }
     }
 
-    const shellUserBinSh = '/usr/bin/sh';
-
     final fallbackShell = Platform.isWindows
         ? 'powershell.exe'
-        : await findExecutable(shellUserBinSh) ?? '/bin/sh';
+        : (await findExecutable('/usr/bin/sh') ?? '/bin/sh');
 
     final exesString = toStringForListOr(_exes.map((e) => e.executable));
     logger.warning(
@@ -295,7 +324,7 @@ class AppActions {
   ) async {
     final executable = await getResolvedExecutable();
     logger.config('Running instructions using `$executable`');
-    if (!await hasExecutionPermission(executable.executable)) {
+    if (!await isExecutable(executable.executable)) {
       logger.severe(
         'Executable `$executable` does not have permission to run.',
       );

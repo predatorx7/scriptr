@@ -21,7 +21,6 @@ options:
             platform.windows: powershell.exe
             platform.linux: bash
             platform.macos:
-             - python3
              - zsh
              - bash
              - sh

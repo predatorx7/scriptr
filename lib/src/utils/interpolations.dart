@@ -3,9 +3,47 @@ import 'dart:convert';
 String interpolateValues(
   String template,
   Map<String, Object?> data, [
-  bool keepAlive = true,
+  MissingSubstitutionValueStrategy strategy =
+      MissingSubstitutionValueStrategy.throwError,
 ]) {
-  return Interpolation.instance.eval(template, data, keepAlive);
+  return Interpolation.instance.eval(template, data, strategy);
+}
+
+class InterpolationError {
+  final String? keyName;
+
+  const InterpolationError(this.keyName);
+
+  @override
+  String toString() {
+    String message;
+    if (keyName == null) {
+      message = 'Missing value for a key during substituion';
+    } else {
+      message = 'Missing value for key "$keyName" during substitution';
+    }
+    return 'InterpolationError: $message';
+  }
+}
+
+enum MissingSubstitutionValueStrategy {
+  keepIntact,
+  replaceWithEmpty,
+  throwError;
+
+  String when({
+    required String Function() keepIntact,
+    String? keyName,
+  }) {
+    switch (this) {
+      case MissingSubstitutionValueStrategy.keepIntact:
+        return keepIntact();
+      case MissingSubstitutionValueStrategy.replaceWithEmpty:
+        return '';
+      case MissingSubstitutionValueStrategy.throwError:
+        throw InterpolationError(keyName);
+    }
+  }
 }
 
 const String _spaces = r'[\s]*';
@@ -206,7 +244,12 @@ class Interpolation {
   /// print(interpolation.traverse(obj, 'c.g', true)); // not present but keepAlive
   /// // output: {c.g}
   /// ```
-  String traverse(Map? obj, String key, [bool keepAlive = false]) {
+  String traverse(
+    Map? obj,
+    String key, [
+    MissingSubstitutionValueStrategy strategy =
+        MissingSubstitutionValueStrategy.replaceWithEmpty,
+  ]) {
     var result = key.split(_option._subKeyPointer).fold<dynamic>(
         obj,
         (parent, k) => null == parent
@@ -214,30 +257,39 @@ class Interpolation {
             : parent is String
                 ? parent
                 : (parent as dynamic)[k]);
-    return result?.toString() ?? (keepAlive ? _missingKeyKeepAlive(key) : '');
+    late final fallbackResult = strategy.when(
+      keepIntact: () => _missingKeyKeepAlive(key),
+      keyName: key,
+    );
+    return result?.toString() ?? fallbackResult;
   }
 
   Set<String> _getMatchSet(String str) =>
       _paramRegex.allMatches(str).map((match) => match[1]!.trim()).toSet();
 
-  String _getInterpolated(String str, Map values, [bool keepAlive = false]) {
+  String _getInterpolated(String str, Map values,
+      [MissingSubstitutionValueStrategy strategy =
+          MissingSubstitutionValueStrategy.replaceWithEmpty]) {
     return str.replaceAllMapped(_paramRegex, (match) {
       var param = match[1]!.trim();
       return values.containsKey(param)
           ? values[param]!
-          : keepAlive
-              ? match[0]!
-              : '';
+          : strategy.when(keepIntact: () => match[0]!, keyName: param);
     });
   }
 
-  Map _flattenAndResolve(Map obj, Set<String> matchSet,
-      [Map? oldCache, bool keepAlive = false]) {
+  Map _flattenAndResolve(
+    Map obj,
+    Set<String> matchSet, [
+    Map? oldCache,
+    MissingSubstitutionValueStrategy strategy =
+        MissingSubstitutionValueStrategy.replaceWithEmpty,
+  ]) {
     var cache = oldCache ?? <String, String>{};
     for (var match in matchSet) {
       if (cache.containsKey(match)) continue;
       // Step 1: Get current value
-      var curVal = traverse(obj, match, keepAlive);
+      var curVal = traverse(obj, match, strategy);
       // Step 2: If it contains other parameters
       if (_missingKeyKeepAlive(match) != curVal &&
           _paramRegex.hasMatch(curVal)) {
@@ -245,9 +297,9 @@ class Interpolation {
         var missingMatchSet = _getMatchSet(curVal);
         missingMatchSet.removeAll(cache.keys);
         if (missingMatchSet.isNotEmpty) {
-          cache = _flattenAndResolve(obj, missingMatchSet, cache, keepAlive);
+          cache = _flattenAndResolve(obj, missingMatchSet, cache, strategy);
         }
-        curVal = _getInterpolated(curVal, cache, keepAlive);
+        curVal = _getInterpolated(curVal, cache, strategy);
       }
       // Step 5: Finally
       cache[match] = curVal.replaceAll('"', '\\"');
@@ -260,11 +312,13 @@ class Interpolation {
   /// If [keepAlive] is set to `true`, it'll leave all placeholders
   /// intact if the value is not found inside [values].
   /// Or else, it'll be substituted with '' (empty String)
-  String eval(String str, Map values, [bool keepAlive = false]) {
+  String eval(String str, Map values,
+      [MissingSubstitutionValueStrategy strategy =
+          MissingSubstitutionValueStrategy.replaceWithEmpty]) {
     if (_paramRegex.hasMatch(str)) {
       var missingMatchSet = _getMatchSet(str);
-      var cache = _flattenAndResolve(values, missingMatchSet, null, keepAlive);
-      str = _getInterpolated(str, cache, keepAlive);
+      var cache = _flattenAndResolve(values, missingMatchSet, null, strategy);
+      str = _getInterpolated(str, cache, strategy);
     }
     return str;
   }
@@ -275,9 +329,13 @@ class Interpolation {
   /// If [keepAlive] is set to `true`, it'll leave all placeholders
   /// intact if the value is not found inside [obj].
   /// Or else, it'll be substituted with '' (empty String)
-  Map resolve(Map obj, [bool keepAlive = false]) {
+  Map resolve(
+    Map obj, [
+    MissingSubstitutionValueStrategy strategy =
+        MissingSubstitutionValueStrategy.replaceWithEmpty,
+  ]) {
     var jsonString = json.encode(obj);
-    jsonString = eval(jsonString, obj, keepAlive);
+    jsonString = eval(jsonString, obj, strategy);
     return json.decode(jsonString);
   }
 }

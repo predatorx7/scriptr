@@ -345,16 +345,25 @@ class AppActions {
     ScriptFunctions function,
     Map<String, Object?> resolvedParameters,
   ) async {
-    await run(
-      function.instructions.map((e) {
+    final List<String> instructions;
+    try {
+      instructions = function.instructions.map((e) {
         return interpolateValues(e, resolvedParameters.map((key, value) {
           return MapEntry(
             key,
             value?.toString() ?? '',
           );
         }));
-      }).toList(),
-    );
+      }).toList();
+    } on InterpolationError catch (e) {
+      logger.severe(
+        'Parameter "${e.keyName}" missing in a function signature: ${function.signature}.'
+        '\nEither remove usage of "${e.keyName}" from instructions or add a parameter by this name in the function that resulted this error.',
+      );
+      exit(ExitCode.config.code);
+    }
+
+    await run(instructions);
     return true;
   }
 }

@@ -95,7 +95,7 @@ class DefaultScriptAppRunner extends ScriptAppRunner {
     if (targetCommandResult != null) {
       final targetCommand = targetCommandResult.command;
       currentCommands.add(targetCommand);
-      logger.info(targetCommand.toJson());
+      logger.fine('targetCommand as json: ${targetCommand.toJson()}');
 
       final subCommands = targetCommand.subCommands;
 

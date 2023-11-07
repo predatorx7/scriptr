@@ -112,7 +112,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.e'), "Hello {c.d}");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), "{c.g}");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          "{c.g}");
       expect(
           result,
           equals({
@@ -147,7 +150,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.e'), "Hello { c.d }");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), "{c.g}");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          "{c.g}");
       expect(
           result,
           equals({
@@ -175,7 +181,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.d'), "d");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), "{c.g}");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          "{c.g}");
       expect(
           result,
           equals({
@@ -209,7 +218,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.e'), "Hello \${c.d}");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), "\${c.g}");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          "\${c.g}");
       expect(
           result,
           equals({
@@ -244,7 +256,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.e'), "Hello \${ c.d }");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), "\${c.g}");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          "\${c.g}");
       expect(
           result,
           equals({
@@ -272,7 +287,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.d'), "d");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), "\${c.g}");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          "\${c.g}");
       expect(
           result,
           equals({
@@ -308,7 +326,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.e'), "Hello \${c.d}");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), " \${ c.g } ");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          " \${ c.g } ");
       expect(
           result,
           equals({
@@ -344,7 +365,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.e'), "Hello \${ c.d }");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), " \${ c.g } ");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          " \${ c.g } ");
       expect(
           result,
           equals({
@@ -372,7 +396,10 @@ void main() {
       expect(interpolation.traverse(obj, 'b'), "10");
       expect(interpolation.traverse(obj, 'c.d'), "d");
       expect(interpolation.traverse(obj, 'c.g'), "");
-      expect(interpolation.traverse(obj, 'c.g', true), " \${ c.g } ");
+      expect(
+          interpolation.traverse(
+              obj, 'c.g', MissingSubstitutionValueStrategy.keepIntact),
+          " \${ c.g } ");
       expect(
           result,
           equals({
